@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"path"
-	"path/filepath"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
@@ -57,55 +56,6 @@ func getBasePackage() (string, error) {
 	return modfile.ModulePath(bytes), nil
 }
 
-type set[T comparable] struct {
-	values map[T]any
-}
-
-func (s *set[T]) Insert(t T) bool {
-	if len(s.values) != 0 {
-		_, ok := s.values[t]
-		if ok {
-			return false
-		}
-	} else {
-		s.values = map[T]any{}
-	}
-	s.values[t] = nil
-	return true
-}
-
-func getDependencies(
-	baseMod string,
-	files func(pkg magehelper.Package) []string,
-	imports func(pkg magehelper.Package) []string,
-) (result []string) {
-	var processedPackages set[string]
-	worklist := []string{baseMod}
-
-	for len(worklist) > 0 {
-		current := worklist[0]
-		worklist = worklist[1:]
-		if processedPackages.Insert(current) {
-			if pkg, ok := magehelper.Packages[current]; ok {
-				result = append(result, expandFiles(pkg, files)...)
-				worklist = append(worklist, imports(pkg)...)
-			}
-		}
-	}
-	return result
-}
-
-func expandFiles(
-	pkg magehelper.Package,
-	files func(pkg magehelper.Package) []string,
-) []string {
-	var result []string
-	for _, gofile := range files(pkg) {
-		result = append(result, filepath.Join(pkg.Dir, gofile))
-	}
-	return result
-}
-
 // Lint performs static analysis on all the code in the project.
 func Lint(ctx context.Context) error {
 	mg.SerialCtxDeps(ctx,
@@ -134,10 +84,4 @@ func Lint(ctx context.Context) error {
 // All runs the build, test, and lint targets.
 func All(ctx context.Context) {
 	mg.SerialCtxDeps(ctx, Lint)
-}
-
-// Goimports installs the goimports tool.
-func Goimports(context.Context) error {
-	module := "golang.org/x/tools/cmd/goimports"
-	return magehelper.InstallTool(goimportsBin(), module)
 }

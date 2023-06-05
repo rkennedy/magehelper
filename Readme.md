@@ -4,24 +4,13 @@
 
 The _magehelper_ package provides package information for use in a Magefile build.
 
+* It defines a rule for installing tool programs during the build.
+* It reads dependency information from the current project to help determine prerequisites between build targets.
+
 # Usage
 
 ```bash
 go get github.com/rkennedy/magehelper
 ```
 
-```go
-package main
-
-import (
-	"os"
-
-	"github.com/rkennedy/nblog"
-	"golang.org/x/exp/slog"
-)
-
-func main() {
-	logger := slog.New(nblog.NewHandler(os.Stdout))
-	logger.Info("message")
-}
-```
+See this project's own magefile for example usage.
