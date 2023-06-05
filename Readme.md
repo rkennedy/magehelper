@@ -6,6 +6,7 @@ The _magehelper_ package provides package information for use in a Magefile buil
 
 * It defines a rule for installing tool programs during the build.
 * It reads dependency information from the current project to help determine prerequisites between build targets.
+* It defines a rule for running the Revive linter on the code.
 
 # Usage
 
