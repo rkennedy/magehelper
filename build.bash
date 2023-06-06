@@ -3,7 +3,8 @@ set -euo pipefail
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 readonly script_dir
-readonly cache_volume=go-cache-magehelper
+readonly app=magehelper
+readonly cache_volume="go-cache-${app}"
 readonly golang=docker.io/library/golang:1.20.2-alpine
 
 readonly cache_path=/go-cache
@@ -42,6 +43,7 @@ g() {
         --env GOCACHE="${cache_path}/go"
         --env GOMODCACHE="${cache_path}/mod"
         --env CGO_ENABLED=0
+        --label app="${app}"
         --label role=builder
         --workdir /src
         "${golang}"
@@ -50,7 +52,7 @@ g() {
 }
 
 volume_args=(
-    --label app=vtasloh
+    --label app="${app}"
     --label role=cache
 )
 
