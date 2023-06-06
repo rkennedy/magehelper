@@ -3,6 +3,7 @@ module github.com/rkennedy/magehelper
 go 1.20
 
 require (
+	github.com/deckarep/golang-set/v2 v2.3.0
 	github.com/magefile/mage v1.15.0
 	github.com/mgechev/revive v1.3.1
 	golang.org/x/mod v0.10.0
