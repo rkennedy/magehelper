@@ -41,7 +41,7 @@ func getDependencies(
 	return result
 }
 
-func buildTestCommandLine(exe string, pkg string, tags ...string) []string {
+func buildTestCommandLine(exe string, pkg string, tags []string) []string {
 	args := []string{
 		"test",
 		"-c",
@@ -54,7 +54,7 @@ func buildTestCommandLine(exe string, pkg string, tags ...string) []string {
 }
 
 // BuildTest builds the specified package's test.
-func BuildTest(ctx context.Context, pkg string, tags ...string) error {
+func BuildTest(ctx context.Context, pkg string, tags []string) error {
 	mg.CtxDeps(ctx, LoadDependencies)
 	deps := getDependencies(pkg, (Package).TestFiles, (Package).TestImportPackages)
 	if len(deps) == 0 {
@@ -70,16 +70,16 @@ func BuildTest(ctx context.Context, pkg string, tags ...string) error {
 	}
 	return sh.RunV(
 		mg.GoCmd(),
-		buildTestCommandLine(exe, pkg, tags...)...,
+		buildTestCommandLine(exe, pkg, tags)...,
 	)
 }
 
 // BuildTests build all the tests.
-func BuildTests(ctx context.Context) error {
+func BuildTests(ctx context.Context, tags []string) error {
 	mg.CtxDeps(ctx, LoadDependencies)
 	tests := []any{}
 	for _, mod := range Packages {
-		tests = append(tests, mg.F(BuildTest, mod.ImportPath))
+		tests = append(tests, mg.F(BuildTest, mod.ImportPath, tags))
 	}
 	mg.CtxDeps(ctx, tests...)
 	return nil
