@@ -46,7 +46,12 @@ func Lint(ctx context.Context) error {
 	return magehelper.Revive(ctx, reviveBin(), "revive.toml")
 }
 
-// All runs the build, test, and lint targets.
+// Test runs unit tests.
+func Test(ctx context.Context) error {
+	return magehelper.Test(ctx)
+}
+
+// All runs the test and lint targets.
 func All(ctx context.Context) {
-	mg.SerialCtxDeps(ctx, Lint)
+	mg.SerialCtxDeps(ctx, Lint, Test)
 }
