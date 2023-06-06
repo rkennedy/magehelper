@@ -22,7 +22,17 @@ func expandFiles(
 	return result
 }
 
-func getDependencies(
+func formatTags(tags []string) []string {
+	if len(tags) > 0 {
+		return []string{"-tags", strings.Join(tags, ",")}
+	}
+	return []string{}
+}
+
+// GetDependencies returns a list of files that the given base module depends on. The files callback should return a
+// list of source files for a given package, and the imports callback should return a list of modules that the package
+// imports. Use functions like [Package.SourceFiles] and [Package.SourceImportPackages].
+func GetDependencies(
 	baseMod string,
 	files func(pkg Package) []string,
 	imports func(pkg Package) []string,
@@ -41,22 +51,44 @@ func getDependencies(
 	return result
 }
 
+func buildBuildCommandLine(exe string, pkg string, tags []string) []string {
+	args := []string{
+		"build",
+		"-o", exe,
+	}
+	args = append(args, formatTags(tags)...)
+	return append(args, pkg)
+}
+
+// Build builds the current package with the given tags and writes the result to the given binary location.
+func Build(ctx context.Context, exe string, tags []string) error {
+	mg.CtxDeps(ctx, LoadDependencies)
+	pkg, err := getBasePackage()
+	if err != nil {
+		return err
+	}
+	deps := GetDependencies(pkg, (Package).SourceFiles, (Package).SourceImportPackages)
+	newer, err := target.Path(exe, deps...)
+	if err != nil || !newer {
+		return err
+	}
+	return sh.RunV(mg.GoCmd(), buildBuildCommandLine(exe, pkg, tags)...)
+}
+
 func buildTestCommandLine(exe string, pkg string, tags []string) []string {
 	args := []string{
 		"test",
 		"-c",
 		"-o", exe,
 	}
-	if len(tags) > 0 {
-		args = append(args, "-tags", strings.Join(tags, ","))
-	}
+	args = append(args, formatTags(tags)...)
 	return append(args, pkg)
 }
 
 // BuildTest builds the specified package's test.
 func BuildTest(ctx context.Context, pkg string, tags []string) error {
 	mg.CtxDeps(ctx, LoadDependencies)
-	deps := getDependencies(pkg, (Package).TestFiles, (Package).TestImportPackages)
+	deps := GetDependencies(pkg, (Package).TestFiles, (Package).TestImportPackages)
 	if len(deps) == 0 {
 		return nil
 	}
@@ -90,9 +122,7 @@ func runTestCommandLine(pkg string, tags []string) []string {
 		"test",
 		"-timeout", "10s",
 	}
-	if len(tags) > 0 {
-		args = append(args, "-tags", strings.Join(tags, ","))
-	}
+	args = append(args, formatTags(tags)...)
 	return append(args, pkg)
 }
 
