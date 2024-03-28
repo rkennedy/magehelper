@@ -5,7 +5,7 @@ script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 readonly script_dir
 readonly app=magehelper
 readonly cache_volume="go-cache-${app}"
-readonly golang=docker.io/library/golang:1.20.2-alpine
+readonly golang=docker.io/library/golang:1.22.1-alpine
 
 readonly cache_path=/go-cache
 
@@ -65,7 +65,7 @@ set -euo pipefail
 if ${update}; then
     go get -u
 fi
-go mod tidy -go 1.20
+go mod tidy -go 1.22
 go run mage.go all
 END
 
