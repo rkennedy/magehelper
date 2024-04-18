@@ -19,8 +19,8 @@ func TestGetDependencies(t *testing.T) {
 	magehelper.LoadDependencies(context.Background())
 
 	deps := magehelper.GetDependencies("github.com/rkennedy/magehelper",
-		(magehelper.Package).SourceFiles,
-		(magehelper.Package).SourceImportPackages)
+		magehelper.Package.SourceFiles,
+		magehelper.Package.SourceImportPackages)
 	g.Expect(deps).To(ContainElements(
 		HaveSuffix("/build.go"),
 		HaveSuffix("/revive.go"),

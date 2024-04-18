@@ -68,7 +68,7 @@ func Build(ctx context.Context, exe string, tags []string) error {
 	if err != nil {
 		return err
 	}
-	deps := GetDependencies(pkg, (Package).SourceFiles, (Package).SourceImportPackages)
+	deps := GetDependencies(pkg, Package.SourceFiles, Package.SourceImportPackages)
 	newer, err := target.Path(exe, deps...)
 	if err != nil || !newer {
 		return err
@@ -111,7 +111,7 @@ func BuildTestDep(pkg string, tags ...string) mg.Fn {
 // BuildTest builds the specified package's test.
 func BuildTest(ctx context.Context, pkg string, tags ...string) error {
 	mg.CtxDeps(ctx, LoadDependencies)
-	deps := GetDependencies(pkg, (Package).TestFiles, (Package).TestImportPackages)
+	deps := GetDependencies(pkg, Package.TestFiles, Package.TestImportPackages)
 	if len(deps) == 0 {
 		return nil
 	}
