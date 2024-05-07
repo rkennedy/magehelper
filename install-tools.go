@@ -64,6 +64,9 @@ func installModule(module, bin string) error {
 // ToolDep returns a [mg.Fn] object suitable for using with [mg.Deps] and similar. When resolved, the object will
 // install the given module to the given binary location, just like [InstallTool].
 func ToolDep(bin, module string) mg.Fn {
+	if module == "github.com/golangci/golangci-lint/cmd/golangci-lint" {
+		return mg.F(InstallToolError, module)
+	}
 	return mg.F(InstallTool, bin, module)
 }
 
@@ -85,4 +88,10 @@ func InstallTool(bin, module string) error {
 		return nil
 	}
 	return installModule(module, bin)
+}
+
+// InstallToolError unconditionally reports an error because the given tool isn't supposed to be installed via "go
+// install."
+func InstallToolError(module string) error {
+	return fmt.Errorf("cannot install module %s: tool isn't supposed to be installed via go-install", module)
 }
