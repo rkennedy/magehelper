@@ -1,6 +1,7 @@
 package magehelper
 
 import (
+	"context"
 	"debug/buildinfo"
 	"errors"
 	"fmt"
@@ -61,24 +62,28 @@ func installModule(module, bin string) error {
 	)
 }
 
-// ToolDep returns a [mg.Fn] object suitable for using with [mg.Deps] and similar. When resolved, the object will
-// install the given module to the given binary location, just like [InstallTool].
-func ToolDep(bin, module string) mg.Fn {
-	if module == "github.com/golangci/golangci-lint/cmd/golangci-lint" {
-		return mg.F(InstallToolError, module)
-	}
-	return mg.F(InstallTool, bin, module)
+type installTool struct {
+	bin    string
+	module string
 }
 
-// InstallTool installs the given module at the given location if the file at that location either doesn't exist or
-// doesn't have the same version as the version of the module configured in go.mod.
-func InstallTool(bin, module string) error {
-	fileVersion, err := currentFileVersion(bin)
+var _ mg.Fn = &installTool{}
+
+func (tool *installTool) ID() string {
+	return tool.bin
+}
+
+func (tool *installTool) Name() string {
+	return tool.bin
+}
+
+func (tool *installTool) Run(context.Context) error {
+	fileVersion, err := currentFileVersion(tool.bin)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
 
-	moduleVersion, err := configuredModuleVersion(module)
+	moduleVersion, err := configuredModuleVersion(tool.module)
 	if err != nil {
 		return err
 	}
@@ -87,7 +92,22 @@ func InstallTool(bin, module string) error {
 		logV("Command is up to date.\n")
 		return nil
 	}
-	return installModule(module, bin)
+	return installModule(tool.module, tool.bin)
+}
+
+// ToolDep returns a [mg.Fn] object suitable for using with [mg.Deps] and similar. When resolved, the object will
+// install the given module to the given binary location, just like [InstallTool].
+func ToolDep(bin, module string) mg.Fn {
+	if module == "github.com/golangci/golangci-lint/cmd/golangci-lint" {
+		return mg.F(InstallToolError, module)
+	}
+	return &installTool{bin, module}
+}
+
+// InstallTool installs the given module at the given location if the file at that location either doesn't exist or
+// doesn't have the same version as the version of the module configured in go.mod.
+func InstallTool(bin, module string) error {
+	return (&installTool{bin, module}).Run(context.Background())
 }
 
 // InstallToolError unconditionally reports an error because the given tool isn't supposed to be installed via "go
