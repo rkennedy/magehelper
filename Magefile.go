@@ -34,13 +34,16 @@ func Tidy(context.Context) error {
 
 // Imports formats the code and updates the import statements.
 func Imports(ctx context.Context) error {
-	mg.SerialCtxDeps(ctx, magehelper.ToolDep(goimportsBin(), "golang.org/x/tools/cmd/goimports"), Tidy)
+	mg.SerialCtxDeps(ctx,
+		magehelper.ToolDep(goimportsBin(), "golang.org/x/tools/cmd/goimports"),
+		Tidy,
+	)
 	return sh.RunV(goimportsBin(), "-w", "-l", ".")
 }
 
 // Lint performs static analysis on all the code in the project.
 func Lint(ctx context.Context) error {
-	mg.SerialCtxDeps(ctx,
+	mg.CtxDeps(ctx,
 		Imports,
 	)
 	return magehelper.Revive(ctx, reviveBin(), "revive.toml")
@@ -53,5 +56,8 @@ func Test(ctx context.Context) error {
 
 // All runs the test and lint targets.
 func All(ctx context.Context) {
-	mg.SerialCtxDeps(ctx, Lint, Test)
+	mg.SerialCtxDeps(ctx,
+		Lint,
+		Test,
+	)
 }
