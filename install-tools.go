@@ -42,7 +42,7 @@ func configuredModuleVersion(module string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	logV("module version %s\n", listOutput)
+	logV("module %s version %s\n", module, listOutput)
 	return listOutput, nil
 }
 
@@ -89,7 +89,7 @@ func (tool *installTool) Run(context.Context) error {
 	}
 
 	if fileVersion == moduleVersion {
-		logV("Command is up to date.\n")
+		logV("Command %s is up to date.\n", tool.bin)
 		return nil
 	}
 	return installModule(tool.module, tool.bin)
