@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
+	"golang.org/x/mod/modfile"
 )
 
 // Package represents the output from go list -json. It's based on the internal package defined in [cmd/go] and on
@@ -84,4 +86,21 @@ func LoadDependencies(context.Context) error {
 			return err
 		}
 	}
+}
+
+// BasePackage returns the full name of the package being tested. It reads go.mod, which means this is intended to be
+// used on tests being run in situ from the project directory, not tests compiled and copied elsewhere to run.
+func BasePackage() (string, error) {
+	f, err := os.Open("go.mod")
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	bytes, err := io.ReadAll(f)
+	if err != nil {
+		return "", err
+	}
+
+	return modfile.ModulePath(bytes), nil
 }
