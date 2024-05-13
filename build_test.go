@@ -23,9 +23,7 @@ func TestGetDependencies(t *testing.T) {
 		magehelper.Package.SourceImportPackages)
 	g.Expect(deps).To(ContainElements(
 		HaveSuffix("/build.go"),
-		HaveSuffix("/revive.go"),
 		HaveSuffix("/packages.go"),
 		HaveSuffix("/doc.go"),
-		HaveSuffix("/install-tools.go"),
 	))
 }

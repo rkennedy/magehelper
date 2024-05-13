@@ -1,10 +1,11 @@
-package magehelper
+package tools
 
 import (
 	"context"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
+	"github.com/rkennedy/magehelper"
 )
 
 // Revive runs the given revive binary and uses the given configuration file to lint all the files in the current
@@ -12,8 +13,8 @@ import (
 func Revive(ctx context.Context, reviveBin string, config string) error {
 	mg.SerialCtxDeps(ctx,
 		ToolDep(reviveBin, "github.com/mgechev/revive"),
-		LoadDependencies)
-	pkg, err := BasePackage()
+		magehelper.LoadDependencies)
+	pkg, err := magehelper.BasePackage()
 	if err != nil {
 		return err
 	}
@@ -22,7 +23,7 @@ func Revive(ctx context.Context, reviveBin string, config string) error {
 		"-config", config,
 		"-set_exit_status",
 		"./...",
-	}, Packages[pkg].IndirectGoFiles()...)
+	}, magehelper.Packages[pkg].IndirectGoFiles()...)
 	return sh.RunV(
 		reviveBin,
 		args...,

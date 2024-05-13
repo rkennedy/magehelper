@@ -1,4 +1,4 @@
-package magehelper
+package tools
 
 import (
 	"archive/tar"

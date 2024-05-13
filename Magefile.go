@@ -11,6 +11,7 @@ import (
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 	"github.com/rkennedy/magehelper"
+	"github.com/rkennedy/magehelper/tools"
 )
 
 func goimportsBin() string {
@@ -35,7 +36,7 @@ func Tidy(context.Context) error {
 // Imports formats the code and updates the import statements.
 func Imports(ctx context.Context) error {
 	mg.SerialCtxDeps(ctx,
-		magehelper.ToolDep(goimportsBin(), "golang.org/x/tools/cmd/goimports"),
+		tools.ToolDep(goimportsBin(), "golang.org/x/tools/cmd/goimports"),
 		Tidy,
 	)
 	return sh.RunV(goimportsBin(), "-w", "-l", ".")
@@ -46,7 +47,7 @@ func Lint(ctx context.Context) error {
 	mg.CtxDeps(ctx,
 		Imports,
 	)
-	return magehelper.Revive(ctx, reviveBin(), "revive.toml")
+	return tools.Revive(ctx, reviveBin(), "revive.toml")
 }
 
 // Test runs unit tests.
