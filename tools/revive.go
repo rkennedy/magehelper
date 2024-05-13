@@ -12,7 +12,7 @@ import (
 // project. If revive is not installed, it will be installed using the version configured in go.mod.
 func Revive(ctx context.Context, reviveBin string, config string) error {
 	mg.SerialCtxDeps(ctx,
-		ToolDep(reviveBin, "github.com/mgechev/revive"),
+		ToolDep(reviveBin, ReviveImport),
 		magehelper.LoadDependencies)
 	pkg, err := magehelper.BasePackage()
 	if err != nil {

@@ -98,7 +98,7 @@ func (tool *installTool) Run(context.Context) error {
 // ToolDep returns a [mg.Fn] object suitable for using with [mg.Deps] and similar. When resolved, the object will
 // install the given module to the given binary location, just like [InstallTool].
 func ToolDep(bin, module string) mg.Fn {
-	if module == "github.com/golangci/golangci-lint/cmd/golangci-lint" {
+	if module == GolangciLintImport {
 		return mg.F(InstallToolError, module)
 	}
 	return &installTool{bin, module}
