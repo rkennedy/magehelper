@@ -5,6 +5,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -174,10 +175,45 @@ func fetchAndWriteGolangciLint(info releaseInfo, bin string) error {
 	return writeDownloadedFile(resp.Body, asset, bin)
 }
 
-// GolangciLintDep creates a dependency on the given version of golangci-lint to be installed at the given binary
-// location. Pass this to [mg.Deps] or [mg.CtxDeps]. See [InstallGolangciLint].
-func GolangciLintDep(bin string, version string) mg.Fn {
-	return mg.F(InstallGolangciLint, bin, version)
+type installGolangciLintTask struct {
+	golangciLintBin string
+	version         string
+}
+
+var _ mg.Fn = &installGolangciLintTask{}
+
+func (fn installGolangciLintTask) ID() string {
+	return fmt.Sprintf("magehelper install %s %s", fn.golangciLintBin, fn.version)
+}
+
+func (fn installGolangciLintTask) Name() string {
+	return fmt.Sprintf("Install golangci-lint %s", fn.version)
+}
+
+func (fn installGolangciLintTask) Run(context.Context) error {
+	fileVersion, err := golangcilintVersion(fn.golangciLintBin)
+	// Mage doesn't use %w to wrap errors. Every error is just a string, so Is(ErrNotExist) doesn't work.
+	if err != nil && !errors.Is(err, fs.ErrNotExist) && !strings.Contains(err.Error(), "no such file or directory") {
+		return err
+	}
+
+	info, err := getReleaseInfo(fn.version)
+	if err != nil {
+		return err
+	}
+
+	if fileVersion == info.TagName {
+		logV("Command is up to date; file %s, tag %s.\n", fileVersion, info.TagName)
+		return nil
+	}
+	return fetchAndWriteGolangciLint(info, fn.golangciLintBin)
+}
+
+// InstallGolangciLint creates a dependency on the given version of golangci-lint to be installed at the given binary
+// location. Pass this to [mg.Deps] or [mg.CtxDeps]. If another version is already installed, then it is overwritten
+// with the requested version. Fetching the requested version requires access to github.com
+func InstallGolangciLint(bin string, version string) mg.Fn {
+	return &installGolangciLintTask{bin, version}
 }
 
 // Get the version of the program at the current location.
@@ -221,26 +257,4 @@ func getReleaseInfo(version string) (releaseInfo, error) {
 	defer resp.Body.Close()
 
 	return decodeBody(resp.Body)
-}
-
-// InstallGolangciLint installs the given version of golangci-lint at the given binary location. If another version is
-// already installed, then it is overwritten with the requested version. Fetching the requested version requires access
-// to github.com.
-func InstallGolangciLint(bin string, version string) error {
-	fileVersion, err := golangcilintVersion(bin)
-	// Mage doesn't use %w to wrap errors. Every error is just a string, so Is(ErrNotExist) doesn't work.
-	if err != nil && !errors.Is(err, fs.ErrNotExist) && !strings.Contains(err.Error(), "no such file or directory") {
-		return err
-	}
-
-	info, err := getReleaseInfo(version)
-	if err != nil {
-		return err
-	}
-
-	if fileVersion == info.TagName {
-		logV("Command is up to date; file %s, tag %s.\n", fileVersion, info.TagName)
-		return nil
-	}
-	return fetchAndWriteGolangciLint(info, bin)
 }

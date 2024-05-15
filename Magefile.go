@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"path"
 
 	"github.com/magefile/mage/mg"
@@ -22,12 +21,6 @@ func reviveBin() string {
 	return path.Join("bin", "revive")
 }
 
-func logV(s string, args ...any) {
-	if mg.Verbose() {
-		_, _ = fmt.Printf(s, args...)
-	}
-}
-
 // Tidy cleans the go.mod file.
 func Tidy(context.Context) error {
 	return sh.RunV(mg.GoCmd(), "mod", "tidy", "-go", "1.20")
@@ -36,18 +29,19 @@ func Tidy(context.Context) error {
 // Imports formats the code and updates the import statements.
 func Imports(ctx context.Context) error {
 	mg.SerialCtxDeps(ctx,
-		tools.ToolDep(goimportsBin(), "golang.org/x/tools/cmd/goimports"),
+		tools.Goimports(goimportsBin()),
 		Tidy,
 	)
-	return sh.RunV(goimportsBin(), "-w", "-l", ".")
+	return nil
 }
 
 // Lint performs static analysis on all the code in the project.
 func Lint(ctx context.Context) error {
-	mg.CtxDeps(ctx,
+	mg.SerialCtxDeps(ctx,
 		Imports,
+		tools.Revive(reviveBin(), "revive.toml"),
 	)
-	return tools.Revive(ctx, reviveBin(), "revive.toml")
+	return nil
 }
 
 // Test runs unit tests.
