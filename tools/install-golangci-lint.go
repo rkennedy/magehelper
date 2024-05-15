@@ -158,15 +158,23 @@ func writeDownloadedFile(body io.Reader, asset *releaseAsset, bin string) (err e
 	return writeArchivedFile(source, bin, mode)
 }
 
+func getURL(ctx context.Context, url string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	return http.DefaultClient.Do(req)
+}
+
 // Download the distribution package for the current platform (GOOS and GOARCH), unpack it, and store it at the given
 // binary location.
-func fetchAndWriteGolangciLint(info releaseInfo, bin string) error {
+func fetchAndWriteGolangciLint(ctx context.Context, info releaseInfo, bin string) error {
 	asset, err := findAsset(info)
 	if err != nil {
 		return err
 	}
 
-	resp, err := http.Get(asset.BrowserDownloadURL)
+	resp, err := getURL(ctx, asset.BrowserDownloadURL)
 	if err != nil {
 		return fmt.Errorf("Could not download file: %w", err)
 	}
@@ -190,14 +198,14 @@ func (fn installGolangciLintTask) Name() string {
 	return fmt.Sprintf("Install golangci-lint %s", fn.version)
 }
 
-func (fn installGolangciLintTask) Run(context.Context) error {
+func (fn installGolangciLintTask) Run(ctx context.Context) error {
 	fileVersion, err := golangcilintVersion(fn.golangciLintBin)
 	// Mage doesn't use %w to wrap errors. Every error is just a string, so Is(ErrNotExist) doesn't work.
 	if err != nil && !errors.Is(err, fs.ErrNotExist) && !strings.Contains(err.Error(), "no such file or directory") {
 		return err
 	}
 
-	info, err := getReleaseInfo(fn.version)
+	info, err := getReleaseInfo(ctx, fn.version)
 	if err != nil {
 		return err
 	}
@@ -206,7 +214,7 @@ func (fn installGolangciLintTask) Run(context.Context) error {
 		logV("Command is up to date; file %s, tag %s.\n", fileVersion, info.TagName)
 		return nil
 	}
-	return fetchAndWriteGolangciLint(info, fn.golangciLintBin)
+	return fetchAndWriteGolangciLint(ctx, info, fn.golangciLintBin)
 }
 
 // InstallGolangciLint creates a dependency on the given version of golangci-lint to be installed at the given binary
@@ -243,14 +251,14 @@ func decodeBody(body io.Reader) (releaseInfo, error) {
 
 // Fetch golangci-lint release information from Github for the given version, which can be either "latest" or a release
 // tag.
-func getReleaseInfo(version string) (releaseInfo, error) {
+func getReleaseInfo(ctx context.Context, version string) (releaseInfo, error) {
 	// Download release info for requested version. (If the requested version is "latest" then that will also tell
 	// us the actual version, so we can compare with the current file's version.)
 	url := "https://api.github.com/repos/golangci/golangci-lint/releases/latest"
 	if version != "latest" {
 		url = fmt.Sprintf("https://api.github.com/repos/golangci/golangci-lint/releases/tags/%s", version)
 	}
-	resp, err := http.Get(url)
+	resp, err := getURL(ctx, url)
 	if err != nil {
 		return releaseInfo{}, err
 	}
