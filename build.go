@@ -82,6 +82,9 @@ func buildTestCommandLine(exe string, pkg string, tags ...string) []string {
 		"-c",
 		"-o", exe,
 	}
+	if mg.Verbose() {
+		args = append(args, "-v")
+	}
 	args = append(args, formatTags(tags)...)
 	return append(args, pkg)
 }
@@ -165,6 +168,9 @@ func runTestCommandLine(pkg string, tags []string) []string {
 	args := []string{
 		"test",
 		"-timeout", "10s",
+	}
+	if mg.Verbose() {
+		args = append(args, "-v")
 	}
 	args = append(args, formatTags(tags)...)
 	return append(args, pkg)
