@@ -5,7 +5,7 @@ package main
 
 import (
 	"context"
-	"path"
+	"path/filepath"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
@@ -14,11 +14,11 @@ import (
 )
 
 func goimportsBin() string {
-	return path.Join("bin", "goimports")
+	return filepath.Join("bin", "goimports")
 }
 
 func reviveBin() string {
-	return path.Join("bin", "revive")
+	return filepath.Join("bin", "revive")
 }
 
 // Tidy cleans the go.mod file.
