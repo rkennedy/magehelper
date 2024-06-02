@@ -46,16 +46,23 @@ func (fn *StringerTask) Run(ctx context.Context) error {
 
 	mg.CtxDeps(ctx, Install(fn.stringerBin, stringerImport))
 
-	dest := fn.destinationFile
-
-	needsUpdate, err := target.Dir(dest, append(fn.inputFiles, fn.stringerBin)...)
+	needsUpdate, err := target.Dir(fn.destinationFile, append(fn.inputFiles, fn.stringerBin)...)
 	if err != nil || !needsUpdate {
 		return err
 	}
 	// We'll assume that all input files are in the same directory, so it's safe to select the first one.
 	packageDir := filepath.Dir(fn.inputFiles[0])
+	if !filepath.IsAbs(packageDir) {
+		// The stringer command will interpret a bare directory as if
+		// it's a package name, and then fail to load it. We need to
+		// make sure it looks like a directory. We can't prepend a "."
+		// like this because Join calls Clean, which removes it.
+		// packageDir = filepath.Join(".", packageDir)
+		// Instead, we can make the path absolute:
+		packageDir, _ = filepath.Abs(packageDir)
+	}
 
-	return sh.RunV(fn.stringerBin, "-output", dest, "-type", fn.typeName, packageDir)
+	return sh.RunV(fn.stringerBin, "-output", fn.destinationFile, "-type", fn.typeName, packageDir)
 }
 
 // Stringer returns a [mg.Fn] object suitable for using with [mg.Deps] and similar. When resolved, the object will run

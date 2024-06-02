@@ -62,7 +62,7 @@ func buildBuildCommandLine(exe string, pkg string, tags []string) []string {
 }
 
 // Build builds the current package with the given tags and writes the result to the given binary location.
-func Build(ctx context.Context, exe string, tags []string) error {
+func Build(ctx context.Context, exe string, tags ...string) error {
 	mg.CtxDeps(ctx, LoadDependencies)
 	pkg, err := BasePackage()
 	if err != nil {
