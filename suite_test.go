@@ -1,4 +1,4 @@
-package tools_test
+package magehelper_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestToolSuite(t *testing.T) {
+func TestMagehelperSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Magehelper tools")
+	RunSpecs(t, "Magehelper")
 }
