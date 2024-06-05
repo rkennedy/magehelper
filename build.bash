@@ -63,10 +63,10 @@ fi
 g sh -x <<END
 set -euo pipefail
 if ${update}; then
-    go get -u
+    find -name go.mod -exec /bin/sh -c 'cd \$(dirname {}) && go get -u' ';'
 fi
-go mod tidy -go 1.22
-go run mage.go all
+find -name go.mod -exec /bin/sh -c 'cd \$(dirname {}) && go mod tidy -go 1.22' ';'
+go run magefiles/mage.go all
 END
 
 # vim: et sw=4 ts=4
