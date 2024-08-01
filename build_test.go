@@ -3,27 +3,26 @@ package magehelper_test
 
 import (
 	"context"
-	"testing"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/rkennedy/magehelper"
 )
 
-// TestGetDependencies checks that [magehelper.GetDependencies] fetches the expected list of source files. It's not a
-// great test because the magehelper package isn't very complicated, so there isn't much to exercise all the corner
-// cases.
-func TestGetDependencies(t *testing.T) {
-	t.Parallel()
-	g := NewWithT(t)
+var _ = Describe("GetDependencies", func() {
+	It("fetches the expected list of source files", func(ctx context.Context) {
+		// It's not a great test because the magehelper package isn't very complicated, so there isn't much to exercise
+		// all the corner cases.
+		magehelper.LoadDependencies(ctx)
 
-	magehelper.LoadDependencies(context.Background())
-
-	deps := magehelper.GetDependencies("github.com/rkennedy/magehelper",
-		magehelper.Package.SourceFiles,
-		magehelper.Package.SourceImportPackages)
-	g.Expect(deps).To(ContainElements(
-		HaveSuffix("/build.go"),
-		HaveSuffix("/packages.go"),
-		HaveSuffix("/doc.go"),
-	))
-}
+		deps := magehelper.GetDependencies("github.com/rkennedy/magehelper",
+			magehelper.Package.SourceFiles,
+			magehelper.Package.SourceImportPackages)
+		Expect(deps).To(ContainElements(
+			HaveSuffix("/build.go"),
+			HaveSuffix("/packages.go"),
+			HaveSuffix("/doc.go"),
+		))
+	})
+})

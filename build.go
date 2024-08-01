@@ -62,7 +62,7 @@ func buildBuildCommandLine(exe string, pkg string, tags []string) []string {
 }
 
 // Build builds the current package with the given tags and writes the result to the given binary location.
-func Build(ctx context.Context, exe string, tags []string) error {
+func Build(ctx context.Context, exe string, tags ...string) error {
 	mg.CtxDeps(ctx, LoadDependencies)
 	pkg, err := BasePackage()
 	if err != nil {
@@ -81,6 +81,9 @@ func buildTestCommandLine(exe string, pkg string, tags ...string) []string {
 		"test",
 		"-c",
 		"-o", exe,
+	}
+	if mg.Verbose() {
+		args = append(args, "-v")
 	}
 	args = append(args, formatTags(tags)...)
 	return append(args, pkg)
@@ -165,6 +168,9 @@ func runTestCommandLine(pkg string, tags []string) []string {
 	args := []string{
 		"test",
 		"-timeout", "10s",
+	}
+	if mg.Verbose() {
+		args = append(args, "-v")
 	}
 	args = append(args, formatTags(tags)...)
 	return append(args, pkg)

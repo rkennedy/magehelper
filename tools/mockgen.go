@@ -3,7 +3,7 @@ package tools
 import (
 	"context"
 	"fmt"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/magefile/mage/mg"
@@ -82,7 +82,7 @@ func (fn MockgenReflectTask) getInputs() (mockPackageName string, files []string
 		// We can add dependencies on the source files of that package, although we don't know precisely which
 		// source files truly define the interfaces we're mocking.
 		for _, file := range pkg.GoFiles {
-			files = append(files, path.Join(pkg.Dir, file))
+			files = append(files, filepath.Join(pkg.Dir, file))
 		}
 		return "mock_" + pkg.Name, files, nil
 	}
@@ -118,7 +118,7 @@ func (fn MockgenReflectTask) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	dest := path.Join(mockPackageName, "mocks.go")
+	dest := filepath.Join(mockPackageName, "mocks.go")
 	files = append(files, fn.mockgenBin)
 
 	needsUpdate, err := target.Dir(dest, files...)

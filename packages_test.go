@@ -1,15 +1,14 @@
 package magehelper_test
 
 import (
-	"testing"
-
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/rkennedy/magehelper"
 )
 
-func TestBasePackage(t *testing.T) {
-	t.Parallel()
-	g := NewWithT(t)
-
-	g.Expect(magehelper.BasePackage()).To(Equal("github.com/rkennedy/magehelper"))
-}
+var _ = Describe("BasePackage", func() {
+	It("returns this package's name", func() {
+		Expect(magehelper.BasePackage()).To(Equal("github.com/rkennedy/magehelper"))
+	})
+})

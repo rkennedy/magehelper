@@ -1,11 +1,9 @@
-//go:build mage
-
 // This magefile determines how to build and test the project.
 package main
 
 import (
 	"context"
-	"path"
+	"path/filepath"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
@@ -13,23 +11,27 @@ import (
 	"github.com/rkennedy/magehelper/tools"
 )
 
+// thisDir is the name of the directory, relative to the main module directory, where _this_ module and its go.mod file
+// live.
+const thisDir = "magefiles"
+
 func goimportsBin() string {
-	return path.Join("bin", "goimports")
+	return filepath.Join("bin", "goimports")
 }
 
 func reviveBin() string {
-	return path.Join("bin", "revive")
+	return filepath.Join("bin", "revive")
 }
 
 // Tidy cleans the go.mod file.
 func Tidy(context.Context) error {
-	return sh.RunV(mg.GoCmd(), "mod", "tidy", "-go", "1.20")
+	return sh.RunV(mg.GoCmd(), "mod", "tidy")
 }
 
 // Imports formats the code and updates the import statements.
 func Imports(ctx context.Context) error {
 	mg.SerialCtxDeps(ctx,
-		tools.Goimports(goimportsBin()),
+		tools.Goimports(goimportsBin()).ModDir(thisDir),
 		Tidy,
 	)
 	return nil
@@ -39,7 +41,7 @@ func Imports(ctx context.Context) error {
 func Lint(ctx context.Context) error {
 	mg.SerialCtxDeps(ctx,
 		Imports,
-		tools.Revive(reviveBin(), "revive.toml"),
+		tools.Revive(reviveBin(), "revive.toml").ModDir(thisDir),
 	)
 	return nil
 }
