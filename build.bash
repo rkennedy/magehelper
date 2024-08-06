@@ -66,7 +66,9 @@ if ${update}; then
     find -name go.mod -exec /bin/sh -c 'cd \$(dirname {}) && go get -u' ';'
 fi
 find -name go.mod -exec /bin/sh -c 'cd \$(dirname {}) && go mod tidy -go 1.22' ';'
-go run magefiles/mage.go all
+
+(cd magefiles && go build -o ../bin/mage mage.go)
+bin/mage all
 END
 
 # vim: et sw=4 ts=4
