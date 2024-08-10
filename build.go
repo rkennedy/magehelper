@@ -118,8 +118,8 @@ func (tb *TestBuilder) Run(ctx context.Context) error {
 	return sh.RunV(mg.GoCmd(), buildTestCommandLine(exe, tb.pkg, tb.tags...)...)
 }
 
-// BuildTest returns a [mg.Fn] that will build the tests for the given package, subject to any given build tags.
-func BuildTest(pkg string, tags ...string) *TestBuilder {
+// buildTest returns a [mg.Fn] that will build the tests for the given package, subject to any given build tags.
+func buildTest(pkg string, tags ...string) *TestBuilder {
 	return &TestBuilder{pkg, tags}
 }
 
@@ -192,7 +192,7 @@ func (atb *AllTestBuilder) Run(ctx context.Context) error {
 			// No tests for this package.
 			continue
 		}
-		tests = append(tests, BuildTest(mod.ImportPath, atb.tags...))
+		tests = append(tests, buildTest(mod.ImportPath, atb.tags...))
 	}
 	mg.CtxDeps(ctx, tests...)
 	return nil
@@ -224,34 +224,34 @@ func runTestCommandLine(pkg string, tags []string) []string {
 	return append(args, pkg)
 }
 
-// TestRunner implements [mg.Fn] to build (as by [BuildTest]) and run the test binary for a package using "go test."
-type TestRunner struct {
+// testRunner implements [mg.Fn] to build (as by [buildTest]) and run the test binary for a package using "go test."
+type testRunner struct {
 	pkg  string
 	tags []string
 }
 
-var _ mg.Fn = &TestRunner{}
+var _ mg.Fn = &testRunner{}
 
 // Name implements [mg.Fn].
-func (tr *TestRunner) Name() string {
+func (tr *testRunner) Name() string {
 	return tr.ID()
 }
 
 // ID implements [mg.Fn].
-func (tr *TestRunner) ID() string {
+func (tr *testRunner) ID() string {
 	return fmt.Sprintf("run-test-%s", tr.pkg)
 }
 
 // Run implements [mg.Fn]. It runs the package's test with "go test."
-func (tr *TestRunner) Run(ctx context.Context) error {
-	mg.CtxDeps(ctx, BuildTest(tr.pkg, tr.tags...))
+func (tr *testRunner) Run(ctx context.Context) error {
+	mg.CtxDeps(ctx, buildTest(tr.pkg, tr.tags...))
 
 	return sh.RunV(mg.GoCmd(), runTestCommandLine(tr.pkg, tr.tags)...)
 }
 
-// RunTest returns a [mg.Fn] that will run the tests for the given package, subject to the given build tags.
-func RunTest(pkg string, tags ...string) *TestRunner {
-	return &TestRunner{pkg, tags}
+// runTest returns a [mg.Fn] that will run the tests for the given package, subject to the given build tags.
+func runTest(pkg string, tags ...string) *testRunner {
+	return &testRunner{pkg, tags}
 }
 
 // AllGinkgoTestRunner is a [mg.Fn] that identifies all tests in the project and uses Ginkgo to build and run them.
@@ -303,7 +303,7 @@ func (atr *AllTestRunner) Name() string {
 
 // ID implements [mg.Fn].
 func (*AllTestRunner) ID() string {
-	return fmt.Sprintf("run-all-tests")
+	return "run-all-tests"
 }
 
 // Run implements [mg.Fn] to identify, build, and run the tests for all packages in the current project. Packages
@@ -321,7 +321,7 @@ func (atr *AllTestRunner) Run(ctx context.Context) error {
 			// No tests for this package.
 			continue
 		}
-		tests = append(tests, RunTest(info.ImportPath, atr.tags...))
+		tests = append(tests, runTest(info.ImportPath, atr.tags...))
 	}
 	mg.CtxDeps(ctx, tests...)
 	return nil
