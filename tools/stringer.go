@@ -69,7 +69,7 @@ func (fn *StringerTask) Run(ctx context.Context) error {
 // Stringer returns a [mg.Fn] object suitable for using with [mg.Deps] and similar. When resolved, the object will run
 // the stringer utility to generate code for the given types. and store the result in the given destination file. At
 // least one input file is required. Input files are used to calculate whether the destination file is out of date
-// first. The string utility is installed if it's not present or if it's out of date.
+// first. The stringer utility is installed if it's not present or if it's out of date.
 func Stringer(stringerBin string, typeName, destination string, inputFiles ...string) mg.Fn {
 	return &StringerTask{
 		stringerBin:     stringerBin,

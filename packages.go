@@ -97,7 +97,7 @@ func (pkg Package) TestBinary() string {
 	return filepath.Join(pkg.RelPath(), pkg.Name+".test")
 }
 
-// IndirectGoFiles returns the files that aren't automatically selected as being part of the package proper. Contract
+// IndirectGoFiles returns the files that aren't automatically selected as being part of the package proper. Contrast
 // with [github.com/mgechev/dots.Resolve], which will return the files that are direct members of the package, but it
 // will not include other files from the same directory that belong to different packages, such as main or the _test
 // package.

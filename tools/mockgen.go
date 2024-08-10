@@ -106,7 +106,7 @@ func (fn MockgenReflectTask) getArgList(dest, mockPackageName string) []string {
 	return append(args, fn.packageName, strings.Join(fn.types, ","))
 }
 
-// Run implements [mg.Run].
+// Run implements [mg.Fn].
 func (fn MockgenReflectTask) Run(ctx context.Context) error {
 	mg.CtxDeps(ctx, append(
 		fn.deps,

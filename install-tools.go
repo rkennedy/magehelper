@@ -123,7 +123,7 @@ const golangciLintImport = "github.com/golangci/golangci-lint/cmd/golangci-lint"
 // Install returns a [mg.Fn] object suitable for using with [mg.Deps] and similar. When resolved, the object will
 // install the given module to the given binary location, using the version of the module declared in go.mod. If the
 // target file already exists, but has a different version, it will be replaced. If the go.mod file that controls the
-// tool version is not the same as the go.mod for the project being built, then call [MagefileModuleDir] to specify
+// tool version is not the same as the go.mod for the project being built, then call ModDir to specify
 // what directory to find the right go.mod file in.
 func Install(bin, module string) InstallTask {
 	if module == golangciLintImport {
