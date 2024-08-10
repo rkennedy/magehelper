@@ -11,16 +11,14 @@ import (
 	"github.com/magefile/mage/target"
 )
 
-func formatTags(tags []string) []string {
-	if len(tags) > 0 {
-		return []string{"-tags", strings.Join(tags, ",")}
-	}
-	return []string{}
-}
+const (
+	goTagOpt     = "-tags"
+	ginkgoTagOpt = "--tags"
+)
 
-func formatGinkgoTags(tags []string) []string {
+func formatTags(option string, tags []string) []string {
 	if len(tags) > 0 {
-		return []string{"--tags", strings.Join(tags, ",")}
+		return []string{option, strings.Join(tags, ",")}
 	}
 	return []string{}
 }
@@ -53,7 +51,7 @@ func buildBuildCommandLine(exe string, pkg string, tags []string) []string {
 		"build",
 		"-o", exe,
 	}
-	args = append(args, formatTags(tags)...)
+	args = append(args, formatTags(goTagOpt, tags)...)
 	return append(args, pkg)
 }
 
@@ -81,7 +79,7 @@ func buildTestCommandLine(exe string, pkg string, tags ...string) []string {
 	if mg.Verbose() {
 		args = append(args, "-v")
 	}
-	args = append(args, formatTags(tags)...)
+	args = append(args, formatTags(goTagOpt, tags)...)
 	return append(args, pkg)
 }
 
@@ -166,7 +164,8 @@ func (agtb *AllGinkgoTestBuilder) Run(ctx context.Context) error {
 	if len(pkgs) == 0 {
 		return nil
 	}
-	return sh.RunV(agtb.bin, append([]string{"build"}, pkgs...)...)
+	args := append([]string{"build"}, formatTags(ginkgoTagOpt, agtb.tags)...)
+	return sh.RunV(agtb.bin, append(args, pkgs...)...)
 }
 
 // AllTestBuilder implements [mg.Fn] to build all the tests using specified build tags.
@@ -221,7 +220,7 @@ func runTestCommandLine(pkg string, tags []string) []string {
 	if mg.Verbose() {
 		args = append(args, "-v")
 	}
-	args = append(args, formatTags(tags)...)
+	args = append(args, formatTags(goTagOpt, tags)...)
 	return append(args, pkg)
 }
 
@@ -280,6 +279,7 @@ func (agtr *AllGinkgoTestRunner) Run(ctx context.Context) error {
 		"-p",
 		"--timeout", "10s",
 	}
+	args = append(args, formatTags(ginkgoTagOpt, agtr.tags)...)
 	for _, info := range Packages {
 		if !info.HasTest() {
 			continue
