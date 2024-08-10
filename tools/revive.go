@@ -18,7 +18,7 @@ type reviveTask struct {
 }
 
 var _ mg.Fn = &reviveTask{}
-var _ InstallTask = &reviveTask{}
+var _ magehelper.InstallTask = &reviveTask{}
 
 func (fn *reviveTask) ID() string {
 	return fmt.Sprintf("magehelper run %s", fn.reviveBin)
@@ -30,7 +30,7 @@ func (*reviveTask) Name() string {
 
 func (fn *reviveTask) Run(ctx context.Context) error {
 	mg.CtxDeps(ctx,
-		Install(fn.reviveBin, reviveImport).ModDir(fn.modDir),
+		magehelper.Install(fn.reviveBin, reviveImport).ModDir(fn.modDir),
 		magehelper.LoadDependencies,
 	)
 	pkg, err := magehelper.BasePackage()
@@ -49,7 +49,7 @@ func (fn *reviveTask) Run(ctx context.Context) error {
 	)
 }
 
-func (fn *reviveTask) ModDir(dir string) InstallTask {
+func (fn *reviveTask) ModDir(dir string) magehelper.InstallTask {
 	fn.modDir = dir
 	return fn
 }
@@ -57,6 +57,6 @@ func (fn *reviveTask) ModDir(dir string) InstallTask {
 // Revive returns a [mg.Fn] object suitable for using with [mg.Deps] and similar. When resolved, the object will run the
 // given revive binary and uses the given configuration file to lint all the files in the current project. If revive is
 // not installed, it will be installed using the version configured in go.mod.
-func Revive(bin, config string) InstallTask {
+func Revive(bin, config string) magehelper.InstallTask {
 	return &reviveTask{reviveBin: bin, config: config}
 }

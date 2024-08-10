@@ -8,6 +8,7 @@ import (
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 	"github.com/magefile/mage/target"
+	"github.com/rkennedy/magehelper"
 )
 
 const stringerImport = "golang.org/x/tools/cmd/stringer"
@@ -44,7 +45,7 @@ func (fn *StringerTask) Run(ctx context.Context) error {
 		return noInputError(fn.typeName)
 	}
 
-	mg.CtxDeps(ctx, Install(fn.stringerBin, stringerImport))
+	mg.CtxDeps(ctx, magehelper.Install(fn.stringerBin, stringerImport))
 
 	needsUpdate, err := target.Dir(fn.destinationFile, append(fn.inputFiles, fn.stringerBin)...)
 	if err != nil || !needsUpdate {

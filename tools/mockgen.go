@@ -110,7 +110,7 @@ func (fn MockgenReflectTask) getArgList(dest, mockPackageName string) []string {
 func (fn MockgenReflectTask) Run(ctx context.Context) error {
 	mg.CtxDeps(ctx, append(
 		fn.deps,
-		Install(fn.mockgenBin, mockgenImport),
+		magehelper.Install(fn.mockgenBin, mockgenImport),
 		magehelper.LoadDependencies,
 	)...)
 
