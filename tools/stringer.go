@@ -13,23 +13,23 @@ import (
 
 const stringerImport = "golang.org/x/tools/cmd/stringer"
 
-// StringerTask is a [mg.Fn] implementation that runs the stringer utility to generate code for an enum type.
-type StringerTask struct {
+// stringerTask is a [mg.Fn] implementation that runs the stringer utility to generate code for an enum type.
+type stringerTask struct {
 	stringerBin     string
 	typeName        string
 	destinationFile string
 	inputFiles      []string
 }
 
-var _ mg.Fn = &StringerTask{}
+var _ mg.Fn = &stringerTask{}
 
 // ID implements [mg.Fn].
-func (fn *StringerTask) ID() string {
+func (fn *stringerTask) ID() string {
 	return fmt.Sprintf("magehelper run %s(%s)", fn.stringerBin, fn.destinationFile)
 }
 
 // Name implements [mg.Fn].
-func (fn *StringerTask) Name() string {
+func (fn *stringerTask) Name() string {
 	return fmt.Sprintf("Stringer %s", fn.typeName)
 }
 
@@ -40,7 +40,7 @@ func (e noInputError) Error() string {
 }
 
 // Run implements [mg.Fn].
-func (fn *StringerTask) Run(ctx context.Context) error {
+func (fn *stringerTask) Run(ctx context.Context) error {
 	if len(fn.inputFiles) <= 0 {
 		return noInputError(fn.typeName)
 	}
@@ -71,7 +71,7 @@ func (fn *StringerTask) Run(ctx context.Context) error {
 // least one input file is required. Input files are used to calculate whether the destination file is out of date
 // first. The stringer utility is installed if it's not present or if it's out of date.
 func Stringer(stringerBin string, typeName, destination string, inputFiles ...string) mg.Fn {
-	return &StringerTask{
+	return &stringerTask{
 		stringerBin:     stringerBin,
 		typeName:        typeName,
 		destinationFile: destination,
