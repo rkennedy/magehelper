@@ -134,13 +134,13 @@ var _ mg.Fn = &AllGinkgoTestBuilder{}
 
 func packageDirsNeedingBuilding() (result []string, err error) {
 	for _, info := range Packages {
-		testFiles := info.TestFiles()
-		if len(testFiles) == 0 {
+		deps := GetDependencies(info.ImportPath, Package.TestFiles, Package.TestImportPackages)
+		if len(deps) == 0 {
 			// This package has no tests.
 			continue
 		}
 
-		needsBuild, err := target.Path(info.TestBinary(), testFiles...)
+		needsBuild, err := target.Path(info.TestBinary(), deps...)
 		if err != nil {
 			return nil, err
 		}
