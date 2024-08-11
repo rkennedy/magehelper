@@ -67,7 +67,7 @@ func (pkg Package) SourceImportPackages() []string {
 // HasTest indicates whether the package has any tests. It checks whether both [TestGoFiles] and [XTestGoFiles] are
 // empty.
 func (pkg Package) HasTest() bool {
-	return len(pkg.TestGoFiles) == 0 && len(pkg.XTestGoFiles) == 0
+	return len(pkg.TestGoFiles) != 0 || len(pkg.XTestGoFiles) != 0
 }
 
 // TestFiles returns the files that contribute to the tests; these are the dependencies to check to determine whether
