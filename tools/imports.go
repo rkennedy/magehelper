@@ -6,6 +6,7 @@ import (
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
+	"github.com/rkennedy/magehelper"
 )
 
 const goimportsImport = "golang.org/x/tools/cmd/goimports"
@@ -24,11 +25,11 @@ func (fn *importTask) Name() string {
 }
 
 func (fn *importTask) Run(ctx context.Context) error {
-	mg.CtxDeps(ctx, Install(fn.goimportsBin, goimportsImport).ModDir(fn.modDir))
+	mg.CtxDeps(ctx, magehelper.Install(fn.goimportsBin, goimportsImport).ModDir(fn.modDir))
 	return sh.RunV(fn.goimportsBin, "-w", "-l", ".")
 }
 
-func (fn *importTask) ModDir(dir string) InstallTask {
+func (fn *importTask) ModDir(dir string) magehelper.InstallTask {
 	fn.modDir = dir
 	return fn
 }
@@ -36,6 +37,6 @@ func (fn *importTask) ModDir(dir string) InstallTask {
 // Goimports returns a [mg.Fn] object suitable for using with [mg.Deps] and similar. When resolved, the object will run
 // the given goimports binary in the project directory. If goimports is not installed, it will be installed using the
 // version configured in go.mod.
-func Goimports(goimportsBin string) InstallTask {
+func Goimports(goimportsBin string) magehelper.InstallTask {
 	return &importTask{goimportsBin: goimportsBin}
 }

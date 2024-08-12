@@ -48,7 +48,7 @@ func Lint(ctx context.Context) error {
 
 // Test runs unit tests.
 func Test(ctx context.Context) error {
-	return magehelper.Test(ctx)
+	return magehelper.Test().Run(ctx)
 }
 
 // All runs the test and lint targets.

@@ -1,4 +1,4 @@
-package tools
+package magehelper
 
 import (
 	"archive/tar"
@@ -219,7 +219,7 @@ func (fn installGolangciLintTask) Run(ctx context.Context) error {
 
 // InstallGolangciLint creates a dependency on the given version of golangci-lint to be installed at the given binary
 // location. Pass this to [mg.Deps] or [mg.CtxDeps]. If another version is already installed, then it is overwritten
-// with the requested version. Fetching the requested version requires access to github.com
+// with the requested version. Fetching the requested version requires access to github.com.
 func InstallGolangciLint(bin string, version string) mg.Fn {
 	return &installGolangciLintTask{bin, version}
 }

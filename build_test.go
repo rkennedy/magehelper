@@ -20,9 +20,9 @@ var _ = Describe("GetDependencies", func() {
 			magehelper.Package.SourceFiles,
 			magehelper.Package.SourceImportPackages)
 		Expect(deps).To(ContainElements(
-			HaveSuffix("/build.go"),
-			HaveSuffix("/packages.go"),
-			HaveSuffix("/doc.go"),
+			"build.go",
+			"packages.go",
+			"doc.go",
 		))
 	})
 })
