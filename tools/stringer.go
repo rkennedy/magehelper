@@ -13,24 +13,33 @@ import (
 
 const stringerImport = "golang.org/x/tools/cmd/stringer"
 
-// stringerTask is a [mg.Fn] implementation that runs the stringer utility to generate code for an enum type.
-type stringerTask struct {
+// StringerTask is a [mg.Fn] implementation that runs the stringer utility to generate code for an enum type.
+type StringerTask struct {
 	stringerBin     string
 	typeName        string
 	destinationFile string
 	inputFiles      []string
+
+	modDir string
 }
 
-var _ mg.Fn = &stringerTask{}
+var _ mg.Fn = &StringerTask{}
 
 // ID implements [mg.Fn].
-func (fn *stringerTask) ID() string {
+func (fn *StringerTask) ID() string {
 	return fmt.Sprintf("magehelper run %s(%s)", fn.stringerBin, fn.destinationFile)
 }
 
 // Name implements [mg.Fn].
-func (fn *stringerTask) Name() string {
+func (fn *StringerTask) Name() string {
 	return fmt.Sprintf("Stringer %s", fn.typeName)
+}
+
+// ModDir indicates the directory where a go.mod file exists specifying which version of the string module to use for
+// this task.
+func (fn *StringerTask) ModDir(dir string) *StringerTask {
+	fn.modDir = dir
+	return fn
 }
 
 type noInputError string
@@ -40,12 +49,12 @@ func (e noInputError) Error() string {
 }
 
 // Run implements [mg.Fn].
-func (fn *stringerTask) Run(ctx context.Context) error {
+func (fn *StringerTask) Run(ctx context.Context) error {
 	if len(fn.inputFiles) <= 0 {
 		return noInputError(fn.typeName)
 	}
 
-	mg.CtxDeps(ctx, magehelper.Install(fn.stringerBin, stringerImport))
+	mg.CtxDeps(ctx, magehelper.Install(fn.stringerBin, stringerImport).ModDir(fn.modDir))
 
 	needsUpdate, err := target.Dir(fn.destinationFile, append(fn.inputFiles, fn.stringerBin)...)
 	if err != nil || !needsUpdate {
@@ -70,8 +79,8 @@ func (fn *stringerTask) Run(ctx context.Context) error {
 // the stringer utility to generate code for the given types. and store the result in the given destination file. At
 // least one input file is required. Input files are used to calculate whether the destination file is out of date
 // first. The stringer utility is installed if it's not present or if it's out of date.
-func Stringer(stringerBin string, typeName, destination string, inputFiles ...string) mg.Fn {
-	return &stringerTask{
+func Stringer(stringerBin string, typeName, destination string, inputFiles ...string) *StringerTask {
+	return &StringerTask{
 		stringerBin:     stringerBin,
 		typeName:        typeName,
 		destinationFile: destination,
