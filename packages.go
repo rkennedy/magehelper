@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/magefile/mage/mg"
@@ -78,7 +79,7 @@ func (pkg Package) TestFiles() []string {
 
 // TestImportPackages returns the names of other packages imported by this package's tests.
 func (pkg Package) TestImportPackages() []string {
-	return append(pkg.TestImports, pkg.XTestImports...)
+	return slices.Concat(pkg.TestImports, pkg.XTestImports)
 }
 
 // RelPath returns the path of the package relative to its root. If that path cannot be calculated, then it returns the
