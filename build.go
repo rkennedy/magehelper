@@ -3,6 +3,8 @@ package magehelper
 import (
 	"context"
 	"fmt"
+	"iter"
+	"maps"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set/v2"
@@ -183,15 +185,21 @@ func (*AllTestBuilder) ID() string {
 	return "build-all-tests"
 }
 
+func filter[T any](src iter.Seq[T], pred func(T) bool) iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for v := range src {
+			if pred(v) && !yield(v) {
+				return
+			}
+		}
+	}
+}
+
 // Run implements [mg.Fn]. It determines the list of tests in the project and runs them all in parallel.
 func (atb *AllTestBuilder) Run(ctx context.Context) error {
 	mg.CtxDeps(ctx, LoadDependencies)
 	tests := []any{}
-	for _, mod := range Packages {
-		if len(mod.TestGoFiles)+len(mod.XTestGoFiles) == 0 {
-			// No tests for this package.
-			continue
-		}
+	for mod := range filter(maps.Values(Packages), Package.HasTest) {
 		tests = append(tests, buildTest(mod.ImportPath, atb.tags...))
 	}
 	mg.CtxDeps(ctx, tests...)
@@ -280,10 +288,7 @@ func (agtr *AllGinkgoTestRunner) Run(ctx context.Context) error {
 		"--timeout", "10s",
 	}
 	args = append(args, formatTags(ginkgoTagOpt, agtr.tags)...)
-	for _, info := range Packages {
-		if !info.HasTest() {
-			continue
-		}
+	for info := range filter(maps.Values(Packages), Package.HasTest) {
 		args = append(args, info.TestBinary())
 	}
 	return sh.Run(agtr.bin, args...)
@@ -316,11 +321,7 @@ func (atr *AllTestRunner) Run(ctx context.Context) error {
 	// running.
 	mg.CtxDeps(ctx, LoadDependencies, BuildTests(atr.tags...))
 	tests := []any{}
-	for _, info := range Packages {
-		if len(info.TestGoFiles)+len(info.XTestGoFiles) == 0 {
-			// No tests for this package.
-			continue
-		}
+	for info := range filter(maps.Values(Packages), Package.HasTest) {
 		tests = append(tests, runTest(info.ImportPath, atr.tags...))
 	}
 	mg.CtxDeps(ctx, tests...)

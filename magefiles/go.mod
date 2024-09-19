@@ -1,8 +1,8 @@
 module github.com/rkennedy/magehelper/magefiles
 
-go 1.22
+go 1.23
 
-toolchain go1.22.1
+toolchain go1.23.1
 
 require (
 	github.com/magefile/mage v1.15.0

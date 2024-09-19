@@ -3,8 +3,10 @@ package tools
 import (
 	"context"
 	"fmt"
+	"iter"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 
@@ -148,6 +150,16 @@ func (fn *MockgenTask) mockPackage(ctx context.Context, wg *sync.WaitGroup, pack
 	}).Run(ctx)
 }
 
+func transform[T, U any](src iter.Seq[T], f func(T) U) iter.Seq[U] {
+	return func(yield func(U) bool) {
+		for t := range src {
+			if !yield(f(t)) {
+				return
+			}
+		}
+	}
+}
+
 func shouldBuildFile(ctx context.Context, dir, packageName string) (targetGoName string, needsBuild bool, err error) {
 	mg.CtxDeps(ctx, magehelper.LoadDependencies)
 
@@ -158,9 +170,9 @@ func shouldBuildFile(ctx context.Context, dir, packageName string) (targetGoName
 
 		// We can add dependencies on the source files of that package, although we don't know precisely which
 		// source files truly define the interfaces we're mocking.
-		for _, file := range pkg.GoFiles {
-			files = append(files, filepath.Join(pkg.Dir, file))
-		}
+		files = slices.AppendSeq(files, transform(slices.Values(pkg.GoFiles), func(file string) string {
+			return filepath.Join(pkg.Dir, file)
+		}))
 
 		targetGoName = fmt.Sprintf("mock_%s_test.go", pkg.Name)
 	} else {
