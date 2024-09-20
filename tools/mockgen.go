@@ -2,8 +2,10 @@ package tools
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"iter"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -99,6 +101,11 @@ type mockgenRec struct {
 
 // Run implements [mg.Fn].
 func (fn *MockgenTask) Run(ctx context.Context) error {
+	dir, err := filepath.Abs(fn.dir)
+	if err != nil {
+		return err
+	}
+	fn.dir = dir
 	in, err := os.Open(filepath.Join(fn.dir, "mockgen.yaml"))
 	if err != nil {
 		return err
@@ -122,6 +129,15 @@ func (fn *MockgenTask) Run(ctx context.Context) error {
 	return nil
 }
 
+func firstThat[T any](items iter.Seq[T], pred func(T) bool) (T, error) {
+	for t := range items {
+		if pred(t) {
+			return t, nil
+		}
+	}
+	return *new(T), errors.New("no match found")
+}
+
 func (fn *MockgenTask) mockPackage(ctx context.Context, wg *sync.WaitGroup, packageName string, rec mockgenRec) error {
 	defer wg.Done()
 
@@ -136,7 +152,13 @@ func (fn *MockgenTask) mockPackage(ctx context.Context, wg *sync.WaitGroup, pack
 		return nil
 	}
 
-	outpkg := fn.dir
+	pkgForDir, err := firstThat(maps.Values(magehelper.Packages), func(pkg magehelper.Package) bool {
+		return pkg.Dir == fn.dir
+	})
+	if err != nil {
+		return err
+	}
+	outpkg := pkgForDir.Name
 	if rec.External {
 		outpkg += "_test"
 	}
