@@ -5,10 +5,10 @@ go 1.23
 toolchain go1.23.1
 
 require (
-	github.com/golang/mock v1.6.0
 	github.com/logrusorgru/aurora/v3 v3.0.0
 	github.com/magefile/mage v1.15.0
 	github.com/rkennedy/magehelper v0.0.0-20240814151936-35a7f2a0f33a
+	go.uber.org/mock v0.4.0
 )
 
 require (

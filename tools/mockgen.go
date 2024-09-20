@@ -18,7 +18,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const mockgenImport = "github.com/golang/mock/mockgen"
+const mockgenImport = "go.uber.org/mock/mockgen"
 
 // MockgenTask is a Mage task that generates mock types for code in a particular directory.
 type MockgenTask struct {

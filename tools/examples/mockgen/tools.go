@@ -8,5 +8,5 @@ package tools
 
 //revive:disable:blank-imports Blank imports are the entire point of this file.
 import (
-	_ "github.com/golang/mock/mockgen"
+	_ "go.uber.org/mock/mockgen"
 )
