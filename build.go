@@ -341,3 +341,10 @@ func (atr *AllTestRunner) UseGinkgo(ginkgoBin string) *AllGinkgoTestRunner {
 func Test(tags ...string) *AllTestRunner {
 	return &AllTestRunner{tags: tags}
 }
+
+// LogV prints the message with [fmt.Printf] if [mg.Verbose] is true.
+func LogV(msg string, args ...any) {
+	if mg.Verbose() {
+		_, _ = fmt.Printf(msg, args...)
+	}
+}

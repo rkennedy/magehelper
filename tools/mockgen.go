@@ -2,9 +2,7 @@ package tools
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"iter"
 	"maps"
 	"os"
 	"path/filepath"
@@ -16,6 +14,7 @@ import (
 	"github.com/magefile/mage/sh"
 	"github.com/magefile/mage/target"
 	"github.com/rkennedy/magehelper"
+	"github.com/rkennedy/magehelper/iters"
 	"gopkg.in/yaml.v3"
 )
 
@@ -99,16 +98,23 @@ type mockgenRec struct {
 	Types    []string `yaml:"types"`
 }
 
-// Run implements [mg.Fn].
-func (fn *MockgenTask) Run(ctx context.Context) error {
-	dir, err := filepath.Abs(fn.dir)
-	if err != nil {
-		return err
+type mockDefinition struct {
+	SourcePackage string
+	External      bool
+	Types         []string
+}
+
+func (def *mockDefinition) OutputPackageName(basePackage string) string {
+	if def.External {
+		return basePackage + "_test"
 	}
-	fn.dir = dir
-	in, err := os.Open(filepath.Join(fn.dir, "mockgen.yaml"))
+	return basePackage
+}
+
+func loadRecords(dir string) ([]mockDefinition, error) {
+	in, err := os.Open(filepath.Join(dir, "mockgen.yaml"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer in.Close()
 
@@ -116,83 +122,91 @@ func (fn *MockgenTask) Run(ctx context.Context) error {
 	recs := map[string]mockgenRec{}
 	err = decoder.Decode(&recs)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	return slices.Collect(iters.MapTransform(maps.All(recs), func(pkgName string, rec mockgenRec) mockDefinition {
+		return mockDefinition{
+			SourcePackage: pkgName,
+			External:      rec.External,
+			Types:         rec.Types,
+		}
+	})), err
+}
 
+func (fn *MockgenTask) fanOutPackages(ctx context.Context, defs []mockDefinition) {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
-	for packageName, rec := range recs {
+	for _, def := range defs {
 		wg.Add(1)
-		go fn.mockPackage(ctx, &wg, packageName, rec)
+		go fn.mockPackage(ctx, &wg, def)
 	}
+}
+
+// Run implements [mg.Fn].
+func (fn *MockgenTask) Run(ctx context.Context) error {
+	dir, err := filepath.Abs(fn.dir)
+	if err != nil {
+		return err
+	}
+	fn.dir = dir
+
+	recs, err := loadRecords(fn.dir)
+	if err != nil {
+		return err
+	}
+
+	fn.fanOutPackages(ctx, recs)
 	return nil
 }
 
-func firstThat[T any](items iter.Seq[T], pred func(T) bool) (T, error) {
-	for t := range items {
-		if pred(t) {
-			return t, nil
-		}
+func outputFileIfNeedsBuild(
+	ctx context.Context,
+	directory, sourcePackage string,
+) (needsBuild bool, outputFile string, err error) {
+	outFileName, files, err := outputAndInputs(ctx, directory, sourcePackage)
+	if err != nil {
+		return false, "", err
 	}
-	return *new(T), errors.New("no match found")
+	needsBuild, err = target.Path(outFileName, files...)
+	if err != nil {
+		return false, "", err
+	}
+	if !needsBuild {
+		magehelper.LogV("File %s is up to date.\n", outFileName)
+		return false, "", nil
+	}
+	return true, outFileName, nil
 }
 
-func (fn *MockgenTask) mockPackage(ctx context.Context, wg *sync.WaitGroup, packageName string, rec mockgenRec) error {
+func (fn *MockgenTask) mockPackage(ctx context.Context, wg *sync.WaitGroup, def mockDefinition) error {
 	defer wg.Done()
 
-	outFileName, needsBuild, err := shouldBuildFile(ctx, fn.dir, packageName)
+	needsBuild, outFileName, err := outputFileIfNeedsBuild(ctx, fn.dir, def.SourcePackage)
 	if err != nil {
 		return err
 	}
 	if !needsBuild {
-		if mg.Verbose() {
-			_, _ = fmt.Printf("File %s is up to date.\n", outFileName)
-		}
 		return nil
 	}
 
-	pkgForDir, err := firstThat(maps.Values(magehelper.Packages), func(pkg magehelper.Package) bool {
-		return pkg.Dir == fn.dir
-	})
-	if err != nil {
-		return err
-	}
-	outpkg := pkgForDir.Name
-	if rec.External {
-		outpkg += "_test"
-	}
-
-	return (&mockgenSubtask{
-		parentTask:  fn,
-		outFileName: outFileName,
-		outpkg:      outpkg,
-		packageName: packageName,
-		types:       rec.Types,
-	}).Run(ctx)
+	return fn.mockSinglePackage(ctx, outFileName, def)
 }
 
-func transform[T, U any](src iter.Seq[T], f func(T) U) iter.Seq[U] {
-	return func(yield func(U) bool) {
-		for t := range src {
-			if !yield(f(t)) {
-				return
-			}
-		}
-	}
-}
-
-func shouldBuildFile(ctx context.Context, dir, packageName string) (targetGoName string, needsBuild bool, err error) {
+// outputAndInputs determines the full name and path of the file to be generated, as well as the files that contribute
+// to its generation. For a non-local package, that's just mockgen.yaml, but for a package that's part of the same
+// project, the inputs include the source files for that project as well.
+func outputAndInputs(ctx context.Context, dir, packageName string) (targetGoName string, files []string, err error) {
 	mg.CtxDeps(ctx, magehelper.LoadDependencies)
 
-	files := []string{filepath.Join(dir, "mockgen.yaml")}
+	files = []string{filepath.Join(dir, "mockgen.yaml")}
 	pkg, ok := magehelper.Packages[packageName]
 	if ok {
 		// It's a local package.
 
 		// We can add dependencies on the source files of that package, although we don't know precisely which
 		// source files truly define the interfaces we're mocking.
-		files = slices.AppendSeq(files, transform(slices.Values(pkg.GoFiles), func(file string) string {
+		files = slices.AppendSeq(files, iters.SliceTransform(slices.Values(pkg.GoFiles), func(file string) string {
 			return filepath.Join(pkg.Dir, file)
 		}))
 
@@ -201,46 +215,32 @@ func shouldBuildFile(ctx context.Context, dir, packageName string) (targetGoName
 		// It's not a local package.
 		var pkgName string
 		pkgName, err = sh.Output(mg.GoCmd(), "list", "-f", "{{.Name}}", packageName)
-		if err != nil {
-			return "", false, err
-		}
 		targetGoName = fmt.Sprintf("mock_%s_test.go", pkgName)
 	}
-	targetGoName = filepath.Join(dir, targetGoName)
-
-	needsBuild, err = target.Path(targetGoName, files...)
-	return targetGoName, needsBuild, err
+	return filepath.Join(dir, targetGoName), files, err
 }
 
-// mockgenSubtask is the part of a MockgenTask that runs mockgen for a single package.
-type mockgenSubtask struct {
-	parentTask  *MockgenTask
-	outFileName string
-	outpkg      string
-	packageName string
-	types       []string
-}
+func (fn *MockgenTask) mockSinglePackage(
+	ctx context.Context,
+	outFileName string,
+	def mockDefinition,
+) error {
+	pkgForDir, ok := iters.SliceSelectFirst(maps.Values(magehelper.Packages), func(pkg magehelper.Package) bool {
+		return pkg.Dir == fn.dir
+	})
+	if !ok {
+		return fmt.Errorf("No package found for directory %s", fn.dir)
+	}
 
-var _ mg.Fn = &mockgenSubtask{}
-
-func (fn mockgenSubtask) Name() string {
-	return fmt.Sprintf("Mock %s.{%s} in %s", fn.packageName, fn.types, fn.parentTask.dir)
-}
-
-func (fn mockgenSubtask) ID() string {
-	return fmt.Sprintf("magehelper mock %s.{%s}/%s", fn.packageName, fn.types, fn.parentTask.dir)
-}
-
-func (fn mockgenSubtask) Run(ctx context.Context) error {
 	mg.CtxDeps(ctx,
-		magehelper.Install(fn.parentTask.mockgenBin, mockgenImport).ModDir(fn.parentTask.modDir),
+		magehelper.Install(fn.mockgenBin, mockgenImport).ModDir(fn.modDir),
 	)
 	return sh.RunV(
-		fn.parentTask.mockgenBin,
-		"-destination", fn.outFileName,
-		"-package", fn.outpkg,
-		// TODO? "-self_package", path.Join(mustBasePackage(), fn.parentTask.dir),
-		fn.packageName,
-		strings.Join(fn.types, ","),
+		fn.mockgenBin,
+		"-destination", outFileName,
+		"-package", def.OutputPackageName(pkgForDir.Name),
+		// TODO? "-self_package", "???",
+		def.SourcePackage,
+		strings.Join(def.Types, ","),
 	)
 }

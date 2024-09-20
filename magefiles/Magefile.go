@@ -54,7 +54,8 @@ func Test(ctx context.Context) error {
 // All runs the test and lint targets.
 func All(ctx context.Context) {
 	mg.SerialCtxDeps(ctx,
-		Lint,
+		Imports,
 		Test,
+		Lint,
 	)
 }

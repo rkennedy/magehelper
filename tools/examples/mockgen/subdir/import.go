@@ -3,4 +3,5 @@
 // be imported. It's not required that it be imported here, though, just so long as it's mentioned in go.mod.
 package subdir
 
+//revive:disable:blank-imports _Using_ the package is not important for this example.
 import _ "github.com/logrusorgru/aurora/v3"
