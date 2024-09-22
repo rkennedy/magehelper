@@ -1,0 +1,3 @@
+bin
+samedir-strings.go
+subdir/subdir-strings.go

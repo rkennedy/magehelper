@@ -1,0 +1,5 @@
+# This will generate mock_io_test.go in the project root, and its package name will be ???.
+io:
+  external: true
+  types:
+  - ReaderAt

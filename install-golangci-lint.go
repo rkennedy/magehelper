@@ -116,7 +116,7 @@ func findAsset(info releaseInfo) (*releaseAsset, error) {
 	if idx == -1 {
 		return nil, fmt.Errorf("No binary found for %s/%s", runtime.GOOS, runtime.GOARCH)
 	}
-	logV("Found release for %s\n", info.Assets[idx].Name)
+	LogV("Found release for %s\n", info.Assets[idx].Name)
 	return &info.Assets[idx], nil
 }
 
@@ -211,7 +211,7 @@ func (fn installGolangciLintTask) Run(ctx context.Context) error {
 	}
 
 	if fileVersion == info.TagName {
-		logV("Command is up to date; file %s, tag %s.\n", fileVersion, info.TagName)
+		LogV("Command is up to date; file %s, tag %s.\n", fileVersion, info.TagName)
 		return nil
 	}
 	return fetchAndWriteGolangciLint(ctx, info, fn.golangciLintBin)

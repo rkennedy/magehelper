@@ -15,23 +15,17 @@ import (
 	"github.com/magefile/mage/sh"
 )
 
-func logV(s string, args ...any) {
-	if mg.Verbose() {
-		_, _ = fmt.Printf(s, args...)
-	}
-}
-
 func currentFileVersion(bin string) (string, error) {
 	binInfo, err := buildinfo.ReadFile(bin)
 	if err != nil {
 		// Either file doesn't exist or we couldn't read it. Either way, we want to install it.
-		logV("%v\n", err)
+		LogV("%v\n", err)
 		if err := sh.Rm(bin); err != nil {
 			return "", err
 		}
 		return "", err
 	}
-	logV("%s version %s\n", bin, binInfo.Main.Version)
+	LogV("%s version %s\n", bin, binInfo.Main.Version)
 	return binInfo.Main.Version, nil
 }
 
@@ -49,7 +43,7 @@ func configuredModuleVersion(thisDir, module string) (string, error) {
 		return "", err
 	}
 	listOutput := strings.TrimSuffix(string(output), "\n")
-	logV("module %s version %s\n", module, listOutput)
+	LogV("module %s version %s\n", module, listOutput)
 	return listOutput, nil
 }
 
@@ -58,7 +52,7 @@ func installModule(thisDir, module, bin string) error {
 	if err != nil {
 		return err
 	}
-	logV("Installing %s to %s\n", module, gobin)
+	LogV("Installing %s to %s\n", module, gobin)
 	c := exec.Command(mg.GoCmd(), "install", module)
 	c.Env = append(os.Environ(), "GOBIN="+gobin)
 	c.Dir = thisDir
@@ -103,7 +97,7 @@ func (tool *regularInstallTask) Run(context.Context) error {
 	}
 
 	if fileVersion == moduleVersion {
-		logV("Command %s is up to date.\n", tool.bin)
+		LogV("Command %s is up to date.\n", tool.bin)
 		return nil
 	}
 	return installModule(tool.modDir, tool.module, tool.bin)

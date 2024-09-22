@@ -3,128 +3,244 @@ package tools
 import (
 	"context"
 	"fmt"
+	"maps"
+	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+	"sync"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 	"github.com/magefile/mage/target"
 	"github.com/rkennedy/magehelper"
+	"github.com/rkennedy/magehelper/iters"
+	"gopkg.in/yaml.v3"
 )
 
-const mockgenImport = "github.com/golang/mock/mockgen"
+const mockgenImport = "go.uber.org/mock/mockgen"
 
-// MockgenReflectTask is a [mg.Fn] implementation that runs the mockgen utility to generate mock objects for given types
-// in a package.
-type MockgenReflectTask struct {
-	mockgenBin  string
-	packageName string
-	types       []string
-	args        []string
-	deps        []any
+// MockgenTask is a Mage task that generates mock types for code in a particular directory.
+type MockgenTask struct {
+	mockgenBin string
+	modDir     string
+
+	dir string
 }
 
-var _ mg.Fn = &MockgenReflectTask{}
+var _ mg.Fn = &MockgenTask{}
 
-// MockLibrary returns a [mg.Fn] that represents the task of creating mocks for the named library using mockgen's
-// reflect mode. It will create a new package by the same name but prefixed with "mock_" and then invoke mockgen with
-// the given arguments, storing the result in the new directory. For example, to mock the [io.ReaderAt] and [io.Writer]
-// interfaces, specify a dependency like this:
+// Mockgen returns a [mg.Fn] that represents the task of creating mocks for use by the given directory. In that
+// directory should be a file, mockgen.yaml, containing the packages and types that dir's code needs to use mock
+// versions of. The YAML should have the structure of the following type:
 //
-//	mg.CtxDeps(ctx,
-//	    MockLibrary("bin/mockgen", "io", "ReaderAt", "Writer"),
-//	)
+//	var yamlStructure map[string]struct {
+//	    external bool
+//	    types    []string
+//	}
 //
-// To mock the [github.com/logrusorgru/aurora/v3.Aurora] interface, specify a dependency like this:
+// That is, the YAML should be an object whose keys are the names of the packages whose types need to be mocked. The
+// values are objects indicating the list of types in the package that should be mocked. The external field indicates
+// whether the generated code should be in the package of the current directory (false) or in the "_test" package
+// (true).
 //
-//	mg.CtxDeps(ctx,
-//	    MockLibrary("bin/mockgen", "github.com/logrusorgru/aurora/v3", "Aurora"),
-//	)
+// The task will run mockgen with the given path and binary name, and it will be installed according to the version
+// requested in the active go.mod, specified by [Mockgen.ModDir].
 //
-// To specify that mocking a library has additional dependencies besides mockgen itself, call [Deps] on the returned
-// MockgenReflectTask.
-func MockLibrary(mockgenBin, pkg string, types ...string) *MockgenReflectTask {
-	return &MockgenReflectTask{
-		mockgenBin:  mockgenBin,
-		packageName: pkg,
-		types:       types,
+// When mockgen.yaml calls for mocking types from another package in the same module, that's referred to as a "local"
+// package, and all that package's source files will be included as dependencies for the generated mock source file,
+// along with mockgen.yaml itself. If the mocked types come from a non-local package (i.e., a Go built-in package or a
+// third-party package), then only mockgen.yaml is a dependency. When dependencies are newer than the generated mock
+// source file, then the source will gen regenerated.
+//
+// To mock the [io.ReaderAt], [io.WriterAt], and [github.com/logrusorgru/aurora/v3.Aurora] interfaces, specify a
+// mockgen.yaml file like this:
+//
+//	io:
+//	  external: true
+//	  types:
+//	  - ReaderAt
+//	  - Writer
+//	github.com/logrusorgru/aurora/v3:
+//	  external: true
+//	  types:
+//	  - Aurora
+func Mockgen(mockgenBin, dir string) *MockgenTask {
+	return &MockgenTask{
+		mockgenBin: mockgenBin,
+		dir:        dir,
 	}
 }
 
-// Args sets the additional command-line arguments that are passed to mockgen. The mockLibrary will always pass
-// -destination and -package, and it will include the package import path and list of interfaces automatically.
-func (fn *MockgenReflectTask) Args(args ...string) *MockgenReflectTask {
-	fn.args = args
-	return fn
-}
-
-// Deps sets any additional magefile dependencies that mocking the current library might require.
-func (fn *MockgenReflectTask) Deps(deps ...any) *MockgenReflectTask {
-	fn.deps = deps
+// ModDir sets the directory where this task will look for a go.mod file that specifies which version of mockgen this
+// project uses. If not specified, it will look in the current working directory, which is usually the project root, but
+// a common alternative is to have a separate go.mod in the magefile directory so that build requirements don't leak
+// into the main project dependencies. ModDir returns the MockgenTask.
+func (fn *MockgenTask) ModDir(dir string) *MockgenTask {
+	fn.modDir = dir
 	return fn
 }
 
 // Name implements [mg.Fn].
-func (fn MockgenReflectTask) Name() string {
-	return fmt.Sprintf("Mockgen %s", fn.packageName)
+func (fn MockgenTask) Name() string {
+	return fmt.Sprintf("Mockgen directory %s", fn.dir)
 }
 
 // ID implements [mg.Fn].
-func (fn MockgenReflectTask) ID() string {
-	return fmt.Sprintf("magehelper %s %v", fn.mockgenBin, fn.types)
+func (fn MockgenTask) ID() string {
+	return fmt.Sprintf("magehelper mockgen %s", fn.dir)
 }
 
-func (fn MockgenReflectTask) getInputs() (mockPackageName string, files []string, err error) {
-	pkg, ok := magehelper.Packages[fn.packageName]
+// Each directory that _uses_ mocks will have a mockgen.yaml file listing all the packages and types that it needs mocks
+// from.
+type mockgenRec struct {
+	External bool     `yaml:"external"`
+	Types    []string `yaml:"types"`
+}
+
+type mockDefinition struct {
+	SourcePackage string
+	External      bool
+	Types         []string
+}
+
+func (def *mockDefinition) OutputPackageName(basePackage string) string {
+	if def.External {
+		return basePackage + "_test"
+	}
+	return basePackage
+}
+
+func loadRecords(dir string) ([]mockDefinition, error) {
+	in, err := os.Open(filepath.Join(dir, "mockgen.yaml"))
+	if err != nil {
+		return nil, err
+	}
+	defer in.Close()
+
+	decoder := yaml.NewDecoder(in)
+	recs := map[string]mockgenRec{}
+	err = decoder.Decode(&recs)
+	if err != nil {
+		return nil, err
+	}
+	return slices.Collect(iters.MapTransform(maps.All(recs), func(pkgName string, rec mockgenRec) mockDefinition {
+		return mockDefinition{
+			SourcePackage: pkgName,
+			External:      rec.External,
+			Types:         rec.Types,
+		}
+	})), err
+}
+
+func (fn *MockgenTask) fanOutPackages(ctx context.Context, defs []mockDefinition) {
+	var wg sync.WaitGroup
+	defer wg.Wait()
+
+	for _, def := range defs {
+		wg.Add(1)
+		go fn.mockPackage(ctx, &wg, def)
+	}
+}
+
+// Run implements [mg.Fn].
+func (fn *MockgenTask) Run(ctx context.Context) error {
+	dir, err := filepath.Abs(fn.dir)
+	if err != nil {
+		return err
+	}
+	fn.dir = dir
+
+	recs, err := loadRecords(fn.dir)
+	if err != nil {
+		return err
+	}
+
+	fn.fanOutPackages(ctx, recs)
+	return nil
+}
+
+func outputFileIfNeedsBuild(
+	ctx context.Context,
+	directory, sourcePackage string,
+) (needsBuild bool, outputFile string, err error) {
+	outFileName, files, err := outputAndInputs(ctx, directory, sourcePackage)
+	if err != nil {
+		return false, "", err
+	}
+	needsBuild, err = target.Path(outFileName, files...)
+	if err != nil {
+		return false, "", err
+	}
+	if !needsBuild {
+		magehelper.LogV("File %s is up to date.\n", outFileName)
+		return false, "", nil
+	}
+	return true, outFileName, nil
+}
+
+func (fn *MockgenTask) mockPackage(ctx context.Context, wg *sync.WaitGroup, def mockDefinition) error {
+	defer wg.Done()
+
+	needsBuild, outFileName, err := outputFileIfNeedsBuild(ctx, fn.dir, def.SourcePackage)
+	if err != nil {
+		return err
+	}
+	if !needsBuild {
+		return nil
+	}
+
+	return fn.mockSinglePackage(ctx, outFileName, def)
+}
+
+// outputAndInputs determines the full name and path of the file to be generated, as well as the files that contribute
+// to its generation. For a non-local package, that's just mockgen.yaml, but for a package that's part of the same
+// project, the inputs include the source files for that project as well.
+func outputAndInputs(ctx context.Context, dir, packageName string) (targetGoName string, files []string, err error) {
+	mg.CtxDeps(ctx, magehelper.LoadDependencies)
+
+	files = []string{filepath.Join(dir, "mockgen.yaml")}
+	pkg, ok := magehelper.Packages[packageName]
 	if ok {
 		// It's a local package.
 
 		// We can add dependencies on the source files of that package, although we don't know precisely which
 		// source files truly define the interfaces we're mocking.
-		for _, file := range pkg.GoFiles {
-			files = append(files, filepath.Join(pkg.Dir, file))
-		}
-		return "mock_" + pkg.Name, files, nil
+		files = slices.AppendSeq(files, iters.SliceTransform(slices.Values(pkg.GoFiles), func(file string) string {
+			return filepath.Join(pkg.Dir, file)
+		}))
+
+		targetGoName = fmt.Sprintf("mock_%s_test.go", pkg.Name)
+	} else {
+		// It's not a local package.
+		var pkgName string
+		pkgName, err = sh.Output(mg.GoCmd(), "list", "-f", "{{.Name}}", packageName)
+		targetGoName = fmt.Sprintf("mock_%s_test.go", pkgName)
 	}
-	// It's not a local package.
-	packageName, err := sh.Output(mg.GoCmd(), "list", "-f", "{{.Name}}", fn.packageName)
-	if err != nil {
-		return "", nil, err
-	}
-	return "mock_" + packageName, nil, nil
+	return filepath.Join(dir, targetGoName), files, err
 }
 
-func (fn MockgenReflectTask) getArgList(dest, mockPackageName string) []string {
-	args := []string{
-		"-destination", dest,
-		// mockgen incorrectly guesses the package name based on the name of the directory it lives in. For example, the
-		// default package name for github.com/logrusorgru/aurora/v3 ends up as "mock_v3" even though the package is
-		// really named aurora. Therefore, we explicitly tell mockgen what we want the name of the mock package to be.
-		"-package", mockPackageName,
-	}
-	args = append(args, fn.args...)
-	return append(args, fn.packageName, strings.Join(fn.types, ","))
-}
-
-// Run implements [mg.Fn].
-func (fn MockgenReflectTask) Run(ctx context.Context) error {
-	mg.CtxDeps(ctx, append(
-		fn.deps,
-		magehelper.Install(fn.mockgenBin, mockgenImport),
-		magehelper.LoadDependencies,
-	)...)
-
-	mockPackageName, files, err := fn.getInputs()
-	if err != nil {
-		return err
-	}
-	dest := filepath.Join(mockPackageName, "mocks.go")
-	files = append(files, fn.mockgenBin)
-
-	needsUpdate, err := target.Dir(dest, files...)
-	if err != nil || !needsUpdate {
-		return err
+func (fn *MockgenTask) mockSinglePackage(
+	ctx context.Context,
+	outFileName string,
+	def mockDefinition,
+) error {
+	pkgForDir, ok := iters.SliceSelectFirst(maps.Values(magehelper.Packages), func(pkg magehelper.Package) bool {
+		return pkg.Dir == fn.dir
+	})
+	if !ok {
+		return fmt.Errorf("No package found for directory %s", fn.dir)
 	}
 
-	return sh.RunV(fn.mockgenBin, fn.getArgList(dest, mockPackageName)...)
+	mg.CtxDeps(ctx,
+		magehelper.Install(fn.mockgenBin, mockgenImport).ModDir(fn.modDir),
+	)
+	return sh.RunV(
+		fn.mockgenBin,
+		"-destination", outFileName,
+		"-package", def.OutputPackageName(pkgForDir.Name),
+		// TODO? "-self_package", "???",
+		def.SourcePackage,
+		strings.Join(def.Types, ","),
+	)
 }

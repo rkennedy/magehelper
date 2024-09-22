@@ -1,0 +1,5 @@
+# This will generate mock_aurora_test.go in the subdirectory, and its package name will be subdir.
+github.com/logrusorgru/aurora/v3:
+  # external: false
+  types:
+  - Aurora

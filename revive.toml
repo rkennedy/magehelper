@@ -22,6 +22,6 @@ arguments = [10, 0]
 [rule.function-result-limit]
 disabled = true  # Not a useful metric for me.
 [rule.line-length-limit]
-arguments = [120]
+arguments = [120]  # This should match the value in _vimrc_local.vim.
 [rule.max-public-structs]
 disabled = true  # We don't care about this limit.

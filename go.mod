@@ -1,15 +1,16 @@
 module github.com/rkennedy/magehelper
 
-go 1.22
+go 1.23
 
-toolchain go1.22.1
+toolchain go1.23.1
 
 require (
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/magefile/mage v1.15.0
 	github.com/onsi/ginkgo/v2 v2.9.5
 	github.com/onsi/gomega v1.27.7
-	golang.org/x/mod v0.20.0
+	golang.org/x/mod v0.21.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -23,5 +24,4 @@ require (
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.20.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
