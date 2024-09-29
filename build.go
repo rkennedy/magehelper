@@ -84,9 +84,6 @@ func buildGinkgoBuildCommandLine(exe string, pkg string, tags ...string) []strin
 		"build",
 		outputOpt, exe,
 	}
-	if mg.Verbose() {
-		args = append(args, verboseOpt)
-	}
 	args = append(args, formatTags(ginkgoTagOpt, tags)...)
 	return append(args, pkg)
 }
