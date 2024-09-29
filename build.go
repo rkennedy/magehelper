@@ -5,19 +5,26 @@ import (
 	"fmt"
 	"iter"
 	"maps"
+	"slices"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 	"github.com/magefile/mage/target"
+	"github.com/rkennedy/magehelper/iters"
 )
 
 const (
 	goTagOpt     = "-tags"
 	ginkgoTagOpt = "--tags"
+
+	outputOpt  = "-o"
+	verboseOpt = "-v"
 )
 
+// formatTags returns a list of command-line options for including tags in a build command. If there are no tags, then
+// no command-line options are returned. Specify option because Go uses -tags and Ginkgo uses --tags.
 func formatTags(option string, tags []string) []string {
 	if len(tags) > 0 {
 		return []string{option, strings.Join(tags, ",")}
@@ -51,7 +58,7 @@ func GetDependencies(
 func buildBuildCommandLine(exe string, pkg string, tags []string) []string {
 	args := []string{
 		"build",
-		"-o", exe,
+		outputOpt, exe,
 	}
 	args = append(args, formatTags(goTagOpt, tags)...)
 	return append(args, pkg)
@@ -72,14 +79,26 @@ func Build(ctx context.Context, exe string, tags ...string) error {
 	return sh.RunV(mg.GoCmd(), buildBuildCommandLine(exe, pkg, tags)...)
 }
 
+func buildGinkgoBuildCommandLine(exe string, pkg string, tags ...string) []string {
+	args := []string{
+		"build",
+		outputOpt, exe,
+	}
+	if mg.Verbose() {
+		args = append(args, verboseOpt)
+	}
+	args = append(args, formatTags(ginkgoTagOpt, tags)...)
+	return append(args, pkg)
+}
+
 func buildTestCommandLine(exe string, pkg string, tags ...string) []string {
 	args := []string{
 		"test",
 		"-c",
-		"-o", exe,
+		outputOpt, exe,
 	}
 	if mg.Verbose() {
-		args = append(args, "-v")
+		args = append(args, verboseOpt)
 	}
 	args = append(args, formatTags(goTagOpt, tags)...)
 	return append(args, pkg)
@@ -120,9 +139,47 @@ func (tb *TestBuilder) Run(ctx context.Context) error {
 	return sh.RunV(mg.GoCmd(), buildTestCommandLine(exe, tb.pkg, tb.tags...)...)
 }
 
-// buildTest returns a [mg.Fn] that will build the tests for the given package, subject to any given build tags.
-func buildTest(pkg string, tags ...string) *TestBuilder {
+// UseGinkgo configures the dependency to use Ginkgo to build the test instead of "go test -c." Provide the path to the
+// ginkgo binary to use; it will be installed if it's not present and up to date.
+func (tb *TestBuilder) UseGinkgo(bin string) *GinkgoTestBuilder {
+	return &GinkgoTestBuilder{
+		TestBuilder: *tb,
+		bin:         bin,
+	}
+}
+
+// BuildTest returns a [mg.Fn] that will build the tests for the given package, subject to any given build tags.
+func BuildTest(pkg string, tags ...string) *TestBuilder {
 	return &TestBuilder{pkg, tags}
+}
+
+// GinkgoTestBuilder is a [mg.Fn] task for building a single package's tests using Ginkgo.
+type GinkgoTestBuilder struct {
+	TestBuilder
+	bin string
+}
+
+var _ mg.Fn = &GinkgoTestBuilder{}
+
+// Run implements [mg.Fn]. It runs "ginkgo build" to build the tests for the package.
+func (sgtb *GinkgoTestBuilder) Run(ctx context.Context) error {
+	mg.CtxDeps(ctx,
+		LoadDependencies,
+		Install(sgtb.bin, "github.com/onsi/ginkgo/v2/ginkgo"),
+	)
+	// Find Package with RelPath == sgtb.pkg
+	info, ok := iters.SliceSelectFirst(maps.Values(Packages), func(info Package) bool {
+		return info.RelPath() == sgtb.pkg
+	})
+	if !ok {
+		return fmt.Errorf("package %s not found", sgtb.pkg)
+	}
+	deps := GetDependencies(info.ImportPath, Package.TestFiles, Package.TestImportPackages)
+	needsBuild, err := target.Path(info.TestBinary(), deps...)
+	if err != nil || !needsBuild {
+		return err
+	}
+	return sh.RunV(sgtb.bin, buildGinkgoBuildCommandLine(info.TestBinary(), sgtb.pkg, sgtb.tags...)...)
 }
 
 // AllGinkgoTestBuilder implements [mg.Fn] to use Ginkgo to build all the tests using build tags specified by
@@ -134,40 +191,20 @@ type AllGinkgoTestBuilder struct {
 
 var _ mg.Fn = &AllGinkgoTestBuilder{}
 
-func packageDirsNeedingBuilding() (result []string, err error) {
-	for _, info := range Packages {
-		deps := GetDependencies(info.ImportPath, Package.TestFiles, Package.TestImportPackages)
-		if len(deps) == 0 {
-			// This package has no tests.
-			continue
-		}
-
-		needsBuild, err := target.Path(info.TestBinary(), deps...)
-		if err != nil {
-			return nil, err
-		}
-		if needsBuild {
-			result = append(result, info.RelPath())
-		}
-	}
-	return result, nil
+func packagesHavingTests() iter.Seq[Package] {
+	return iters.Filter(maps.Values(Packages), Package.HasTest)
 }
 
 // Run implements [mb.Fn]. It determines the list of tests in the project and runs them all on a single Ginkgo command.
 func (agtb *AllGinkgoTestBuilder) Run(ctx context.Context) error {
 	mg.CtxDeps(ctx,
 		LoadDependencies,
-		Install(agtb.bin, "github.com/onsi/ginkgo/v2/ginkgo"),
 	)
-	pkgs, err := packageDirsNeedingBuilding()
-	if err != nil {
-		return err
-	}
-	if len(pkgs) == 0 {
-		return nil
-	}
-	args := append([]string{"build"}, formatTags(ginkgoTagOpt, agtb.tags)...)
-	return sh.RunV(agtb.bin, append(args, pkgs...)...)
+	deps := iters.SliceTransform(packagesHavingTests(), func(pkg Package) any {
+		return BuildTest(pkg.RelPath(), agtb.tags...).UseGinkgo(agtb.bin)
+	})
+	mg.CtxDeps(ctx, slices.Collect(deps)...)
+	return nil
 }
 
 // AllTestBuilder implements [mg.Fn] to build all the tests using specified build tags.
@@ -200,7 +237,7 @@ func (atb *AllTestBuilder) Run(ctx context.Context) error {
 	mg.CtxDeps(ctx, LoadDependencies)
 	tests := []any{}
 	for mod := range filter(maps.Values(Packages), Package.HasTest) {
-		tests = append(tests, buildTest(mod.ImportPath, atb.tags...))
+		tests = append(tests, BuildTest(mod.ImportPath, atb.tags...))
 	}
 	mg.CtxDeps(ctx, tests...)
 	return nil
@@ -226,13 +263,13 @@ func runTestCommandLine(pkg string, tags []string) []string {
 		"-timeout", "10s",
 	}
 	if mg.Verbose() {
-		args = append(args, "-v")
+		args = append(args, verboseOpt)
 	}
 	args = append(args, formatTags(goTagOpt, tags)...)
 	return append(args, pkg)
 }
 
-// testRunner implements [mg.Fn] to build (as by [buildTest]) and run the test binary for a package using "go test."
+// testRunner implements [mg.Fn] to build (as by [BuildTest]) and run the test binary for a package using "go test."
 type testRunner struct {
 	pkg  string
 	tags []string
@@ -252,7 +289,7 @@ func (tr *testRunner) ID() string {
 
 // Run implements [mg.Fn]. It runs the package's test with "go test."
 func (tr *testRunner) Run(ctx context.Context) error {
-	mg.CtxDeps(ctx, buildTest(tr.pkg, tr.tags...))
+	mg.CtxDeps(ctx, BuildTest(tr.pkg, tr.tags...))
 
 	return sh.RunV(mg.GoCmd(), runTestCommandLine(tr.pkg, tr.tags)...)
 }
