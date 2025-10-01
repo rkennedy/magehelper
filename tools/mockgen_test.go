@@ -50,7 +50,8 @@ var _ = Describe("Mockgen", Ordered, func() {
 	})
 
 	It("produces a valid root source file", func() {
-		tree, err := parser.ParseFile(token.NewFileSet(), filepath.Join(thisDir, "mock_io_test.go"), nil, parser.SkipObjectResolution)
+		tree, err := parser.ParseFile(token.NewFileSet(), filepath.Join(thisDir, "mock_io_test.go"), nil,
+			parser.SkipObjectResolution)
 		Expect(tree, err).NotTo(BeNil())
 
 		Expect(tree).To(HaveField("Name.Name", Equal("main_test")))
@@ -68,7 +69,8 @@ var _ = Describe("Mockgen", Ordered, func() {
 	})
 
 	It("produces a valid subdirectory file", func() {
-		tree, err := parser.ParseFile(token.NewFileSet(), filepath.Join(thisDir, "subdir", "mock_aurora_test.go"), nil, parser.SkipObjectResolution)
+		tree, err := parser.ParseFile(token.NewFileSet(), filepath.Join(thisDir, "subdir", "mock_aurora_test.go"), nil,
+			parser.SkipObjectResolution)
 		Expect(tree, err).NotTo(BeNil())
 
 		Expect(tree).To(HaveField("Name.Name", Equal("subdir")))

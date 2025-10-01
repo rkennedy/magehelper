@@ -4,18 +4,19 @@ go 1.25
 
 require (
 	github.com/magefile/mage v1.15.0
-	github.com/onsi/gomega v1.34.2
-	github.com/rkennedy/magehelper v0.0.0-20240814151936-35a7f2a0f33a
-	golang.org/x/tools v0.25.0
+	github.com/onsi/gomega v1.38.2
+	github.com/rkennedy/magehelper v0.0.0-20240929185338-3185725b6dfb
+	golang.org/x/tools v0.37.0
 )
 
 require (
-	github.com/deckarep/golang-set/v2 v2.6.0 // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
-	golang.org/x/mod v0.21.0 // indirect
-	golang.org/x/net v0.29.0 // indirect
-	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/text v0.18.0 // indirect
+	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	golang.org/x/mod v0.28.0 // indirect
+	golang.org/x/net v0.44.0 // indirect
+	golang.org/x/sync v0.17.0 // indirect
+	golang.org/x/text v0.29.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

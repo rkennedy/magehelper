@@ -154,6 +154,8 @@ func writeDownloadedFile(body io.Reader, asset *releaseAsset, bin string) (err e
 		if err != nil {
 			return err
 		}
+	default:
+		return fmt.Errorf("Unknown asset content-type %s", asset.ContentType)
 	}
 	return writeArchivedFile(source, bin, mode)
 }
