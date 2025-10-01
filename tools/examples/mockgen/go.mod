@@ -1,8 +1,6 @@
 module github.com/rkennedy/magehelper/examples/mockgen
 
-go 1.23
-
-toolchain go1.23.1
+go 1.25
 
 require (
 	github.com/logrusorgru/aurora/v3 v3.0.0

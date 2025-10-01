@@ -130,7 +130,7 @@ func golangciLintBinary() string {
 	return targetFileName
 }
 
-// Given an HTTP body, use the asset's content type to optn the body as a tarball or zip file and extract the
+// Given an HTTP body, use the asset's content type to open the body as a tarball or zip file and extract the
 // golangci-lint binary to the desired binary location.
 //
 //revive:disable-next-line:function-length 14 instructions is fine here.
