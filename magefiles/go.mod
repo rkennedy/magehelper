@@ -5,7 +5,7 @@ go 1.25
 require (
 	github.com/magefile/mage v1.15.0
 	github.com/mgechev/revive v1.12.0
-	github.com/rkennedy/magehelper v0.0.0-20240929185338-3185725b6dfb
+	github.com/rkennedy/magehelper v0.0.0-20251001024801-b9bfd68621b2
 	golang.org/x/tools v0.37.0
 )
 
