@@ -63,11 +63,11 @@ fi
 g sh -x <<END
 set -euo pipefail
 if ${update}; then
-    find -name go.mod -exec /bin/sh -c 'cd \$(dirname {}) && go get -u' ';'
+    find -name go.mod -exec /bin/sh -c 'go -C \$(dirname {}) get -u' ';'
 fi
-find -name go.mod -exec /bin/sh -c 'cd \$(dirname {}) && go mod tidy -go 1.25' ';'
+find -name go.mod -exec /bin/sh -c 'go -C \$(dirname {}) mod tidy -go 1.25' ';'
 
-(cd magefiles && go build -o ../bin/mage mage.go)
+go -C magefiles build -o ../bin/mage mage.go
 bin/mage all
 END
 
