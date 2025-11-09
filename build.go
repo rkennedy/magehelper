@@ -299,7 +299,8 @@ func runTest(pkg string, tags ...string) *testRunner {
 // AllGinkgoTestRunner is a [mg.Fn] that identifies all tests in the project and uses Ginkgo to build and run them.
 type AllGinkgoTestRunner struct {
 	AllTestRunner
-	bin string
+	bin      string
+	parallel bool
 }
 
 var _ mg.Fn = &AllGinkgoTestRunner{}
@@ -318,14 +319,23 @@ func (agtr *AllGinkgoTestRunner) Run(ctx context.Context) error {
 	)
 	args := []string{
 		"run",
-		"-p",
 		"--timeout", "10s",
+	}
+	if agtr.parallel {
+		args = append(args, "-p")
 	}
 	args = append(args, formatTags(ginkgoTagOpt, agtr.tags)...)
 	for info := range filter(maps.Values(Packages), Package.HasTest) {
 		args = append(args, info.TestBinary())
 	}
 	return sh.Run(agtr.bin, args...)
+}
+
+// Parallel instructs the test runner to use the "ginkgo -p" option to run tests in parallel. Beware that running in
+// parallel may interfere with output from benchmarks, examples, and non-Ginkgo tests.
+func (agtr *AllGinkgoTestRunner) Parallel() *AllGinkgoTestRunner {
+	agtr.parallel = true
+	return agtr
 }
 
 // AllTestRunner implements [mg.Fn] to identify, build, and run tests for all packages in the current project.
