@@ -1,4 +1,4 @@
-module github.com/rkennedy/magehelper
+module sweetkennedy.net/magehelper
 
 go 1.25
 

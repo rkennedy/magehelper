@@ -7,10 +7,10 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/rkennedy/magehelper"
+	"sweetkennedy.net/magehelper"
 )
 
-const thisPackage = "github.com/rkennedy/magehelper"
+const thisPackage = "sweetkennedy.net/magehelper"
 
 var _ = Describe("BasePackage", func() {
 	It("returns this package's name", func() {

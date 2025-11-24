@@ -1,12 +1,12 @@
-module github.com/rkennedy/magehelper/examples/mockgen
+module sweetkennedy.net/magehelper/examples/mockgen
 
 go 1.25
 
 require (
 	github.com/logrusorgru/aurora/v3 v3.0.0
 	github.com/magefile/mage v1.15.0
-	github.com/rkennedy/magehelper v0.0.0-20251001024801-b9bfd68621b2
 	go.uber.org/mock v0.6.0
+	sweetkennedy.net/magehelper v0.0.0-20251001024801-b9bfd68621b2
 )
 
 require (
@@ -17,4 +17,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/rkennedy/magehelper => ../../..
+replace sweetkennedy.net/magehelper => ../../..

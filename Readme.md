@@ -1,6 +1,6 @@
 # Mage helper
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/rkennedy/magehelper.svg)](https://pkg.go.dev/github.com/rkennedy/magehelper)
+[![Go Reference](https://pkg.go.dev/badge/sweetkennedy.net/magehelper.svg)](https://pkg.go.dev/sweetkennedy.net/magehelper)
 
 The _magehelper_ package provides package information for use in a Magefile build.
 
@@ -11,7 +11,7 @@ The _magehelper_ package provides package information for use in a Magefile buil
 # Usage
 
 ```bash
-go get github.com/rkennedy/magehelper
+go get sweetkennedy.net/magehelper
 ```
 
 See this project's own magefile for example usage.

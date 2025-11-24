@@ -6,7 +6,7 @@ import (
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
-	"github.com/rkennedy/magehelper"
+	"sweetkennedy.net/magehelper"
 )
 
 const reviveImport = "github.com/mgechev/revive"

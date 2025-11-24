@@ -12,7 +12,7 @@ import (
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 	"github.com/magefile/mage/target"
-	"github.com/rkennedy/magehelper/iters"
+	"sweetkennedy.net/magehelper/iters"
 )
 
 const (

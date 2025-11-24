@@ -10,8 +10,8 @@ import (
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
-	"github.com/rkennedy/magehelper"
-	"github.com/rkennedy/magehelper/tools"
+	"sweetkennedy.net/magehelper"
+	"sweetkennedy.net/magehelper/tools"
 )
 
 var (

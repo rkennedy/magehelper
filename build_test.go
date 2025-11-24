@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/rkennedy/magehelper"
+	"sweetkennedy.net/magehelper"
 )
 
 var _ = Describe("GetDependencies", func() {
@@ -16,7 +16,7 @@ var _ = Describe("GetDependencies", func() {
 		// all the corner cases.
 		magehelper.LoadDependencies(ctx)
 
-		deps := magehelper.GetDependencies("github.com/rkennedy/magehelper",
+		deps := magehelper.GetDependencies("sweetkennedy.net/magehelper",
 			magehelper.Package.SourceFiles,
 			magehelper.Package.SourceImportPackages)
 		Expect(deps).To(ContainElements(

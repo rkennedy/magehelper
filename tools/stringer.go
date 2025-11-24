@@ -8,7 +8,7 @@ import (
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 	"github.com/magefile/mage/target"
-	"github.com/rkennedy/magehelper"
+	"sweetkennedy.net/magehelper"
 )
 
 const stringerImport = "golang.org/x/tools/cmd/stringer"

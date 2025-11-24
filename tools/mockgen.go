@@ -13,9 +13,9 @@ import (
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 	"github.com/magefile/mage/target"
-	"github.com/rkennedy/magehelper"
-	"github.com/rkennedy/magehelper/iters"
 	"gopkg.in/yaml.v3"
+	"sweetkennedy.net/magehelper"
+	"sweetkennedy.net/magehelper/iters"
 )
 
 const mockgenImport = "go.uber.org/mock/mockgen"

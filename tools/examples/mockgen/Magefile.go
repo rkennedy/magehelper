@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/magefile/mage/mg"
-	"github.com/rkennedy/magehelper/tools"
+	"sweetkennedy.net/magehelper/tools"
 )
 
 var (

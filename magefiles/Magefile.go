@@ -7,8 +7,8 @@ import (
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
-	"github.com/rkennedy/magehelper"
-	"github.com/rkennedy/magehelper/tools"
+	"sweetkennedy.net/magehelper"
+	"sweetkennedy.net/magehelper/tools"
 )
 
 // thisDir is the name of the directory, relative to the main module directory, where _this_ module and its go.mod file

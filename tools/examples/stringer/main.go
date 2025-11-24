@@ -8,7 +8,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"github.com/rkennedy/magehelper/examples/stringer/subdir"
+	"sweetkennedy.net/magehelper/examples/stringer/subdir"
 )
 
 // SameDirectory is an enum in the same directory as the main package.
